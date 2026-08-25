@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/database/app_database.dart';
+import '../../sessions/application/sessions_providers.dart';
 import '../application/workouts_providers.dart';
 
 class WorkoutLibraryScreen extends ConsumerWidget {
@@ -106,18 +107,38 @@ class WorkoutLibraryScreen extends ConsumerWidget {
                   ),
                 ),
                 onTap: () => context.push('/workouts/${workout.id}'),
-                trailing: PopupMenuButton<String>(
-                  onSelected: (action) {
-                    switch (action) {
-                      case 'duplicate':
-                        _duplicateWorkout(ref, workout);
-                      case 'delete':
-                        _confirmDelete(context, ref, workout);
-                    }
-                  },
-                  itemBuilder: (context) => const [
-                    PopupMenuItem(value: 'duplicate', child: Text('Duplicar')),
-                    PopupMenuItem(value: 'delete', child: Text('Excluir')),
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.play_arrow),
+                      tooltip: 'Iniciar',
+                      onPressed: () async {
+                        final id = await ref
+                            .read(sessionsRepositoryProvider)
+                            .startSessionFromWorkout(workout);
+                        if (context.mounted) {
+                          context.push('/sessions/$id');
+                        }
+                      },
+                    ),
+                    PopupMenuButton<String>(
+                      onSelected: (action) {
+                        switch (action) {
+                          case 'duplicate':
+                            _duplicateWorkout(ref, workout);
+                          case 'delete':
+                            _confirmDelete(context, ref, workout);
+                        }
+                      },
+                      itemBuilder: (context) => const [
+                        PopupMenuItem(
+                          value: 'duplicate',
+                          child: Text('Duplicar'),
+                        ),
+                        PopupMenuItem(value: 'delete', child: Text('Excluir')),
+                      ],
+                    ),
                   ],
                 ),
               );

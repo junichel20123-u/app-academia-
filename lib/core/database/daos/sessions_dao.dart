@@ -33,6 +33,19 @@ class SessionsDao extends DatabaseAccessor<AppDatabase>
     workoutSessions,
   )..where((t) => t.id.equals(id))).getSingleOrNull();
 
+  Stream<WorkoutSession?> watchSessionById(int id) => (select(
+    workoutSessions,
+  )..where((t) => t.id.equals(id))).watchSingleOrNull();
+
+  /// Most recent in-progress session, if any — used to offer "resume".
+  Stream<WorkoutSession?> watchActiveSession() {
+    final query = select(workoutSessions)
+      ..where((t) => t.status.equalsValue(WorkoutSessionStatus.inProgress))
+      ..orderBy([(t) => OrderingTerm.desc(t.startedAt)])
+      ..limit(1);
+    return query.watchSingleOrNull();
+  }
+
   Future<List<LoggedSet>> getSetsForSession(int sessionId) {
     final query = select(loggedSets)
       ..where((t) => t.sessionId.equals(sessionId))
