@@ -16,6 +16,9 @@ class SessionsRepository {
   Stream<WorkoutSession?> watchActiveSession() =>
       _db.sessionsDao.watchActiveSession();
 
+  Stream<List<WorkoutSession>> watchCompletedSessions() =>
+      _db.sessionsDao.watchCompletedSessions();
+
   Stream<List<LoggedSet>> watchSetsForSession(int sessionId) =>
       _db.sessionsDao.watchSetsForSession(sessionId);
 

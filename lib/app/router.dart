@@ -1,7 +1,7 @@
 import 'package:go_router/go_router.dart';
 
 import '../features/cardio/presentation/cardio_screen.dart';
-import '../features/dashboard/presentation/placeholder_home_screen.dart';
+import '../features/dashboard/presentation/dashboard_screen.dart';
 import '../features/sessions/presentation/active_session_screen.dart';
 import '../features/sessions/presentation/session_history_screen.dart';
 import '../features/weigh_in/presentation/weigh_in_screen.dart';
@@ -10,10 +10,7 @@ import '../features/workouts/presentation/workout_library_screen.dart';
 
 final appRouter = GoRouter(
   routes: [
-    GoRoute(
-      path: '/',
-      builder: (context, state) => const PlaceholderHomeScreen(),
-    ),
+    GoRoute(path: '/', builder: (context, state) => const DashboardScreen()),
     GoRoute(
       path: '/workouts',
       builder: (context, state) => const WorkoutLibraryScreen(),

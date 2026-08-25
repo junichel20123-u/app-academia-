@@ -7,7 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  testWidgets('App boots and shows the placeholder home screen', (
+  testWidgets('App boots and shows the dashboard', (
     WidgetTester tester,
   ) async {
     final db = AppDatabase.forTesting(NativeDatabase.memory());

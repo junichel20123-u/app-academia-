@@ -29,6 +29,14 @@ class SessionsDao extends DatabaseAccessor<AppDatabase>
     return query.get();
   }
 
+  /// Used to derive the streak — recomputed on read, never stored, so it
+  /// can't drift if a past session is edited or deleted.
+  Stream<List<WorkoutSession>> watchCompletedSessions() {
+    final query = select(workoutSessions)
+      ..where((t) => t.status.equalsValue(WorkoutSessionStatus.completed));
+    return query.watch();
+  }
+
   Future<WorkoutSession?> getSessionById(int id) => (select(
     workoutSessions,
   )..where((t) => t.id.equals(id))).getSingleOrNull();
