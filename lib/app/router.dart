@@ -4,6 +4,7 @@ import '../features/cardio/presentation/cardio_screen.dart';
 import '../features/dashboard/presentation/placeholder_home_screen.dart';
 import '../features/sessions/presentation/active_session_screen.dart';
 import '../features/sessions/presentation/session_history_screen.dart';
+import '../features/weigh_in/presentation/weigh_in_screen.dart';
 import '../features/workouts/presentation/workout_edit_screen.dart';
 import '../features/workouts/presentation/workout_library_screen.dart';
 
@@ -36,5 +37,9 @@ final appRouter = GoRouter(
       builder: (context, state) => const SessionHistoryScreen(),
     ),
     GoRoute(path: '/cardio', builder: (context, state) => const CardioScreen()),
+    GoRoute(
+      path: '/weigh-in',
+      builder: (context, state) => const WeighInScreen(),
+    ),
   ],
 );

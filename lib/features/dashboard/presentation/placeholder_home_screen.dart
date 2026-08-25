@@ -58,6 +58,11 @@ class PlaceholderHomeScreen extends ConsumerWidget {
               onPressed: () => context.push('/cardio'),
               child: const Text('Cardio'),
             ),
+            const SizedBox(height: 8),
+            OutlinedButton(
+              onPressed: () => context.push('/weigh-in'),
+              child: const Text('Pesagem'),
+            ),
           ],
         ),
       ),
