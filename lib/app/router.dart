@@ -1,5 +1,6 @@
 import 'package:go_router/go_router.dart';
 
+import '../features/cardio/presentation/cardio_screen.dart';
 import '../features/dashboard/presentation/placeholder_home_screen.dart';
 import '../features/sessions/presentation/active_session_screen.dart';
 import '../features/sessions/presentation/session_history_screen.dart';
@@ -34,5 +35,6 @@ final appRouter = GoRouter(
       path: '/history',
       builder: (context, state) => const SessionHistoryScreen(),
     ),
+    GoRoute(path: '/cardio', builder: (context, state) => const CardioScreen()),
   ],
 );

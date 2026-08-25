@@ -21,3 +21,11 @@ String equipmentLabel(Equipment equipment) => switch (equipment) {
   Equipment.band => 'Elástico',
   Equipment.other => 'Outro',
 };
+
+String cardioActivityTypeLabel(CardioActivityType type) => switch (type) {
+  CardioActivityType.run => 'Corrida',
+  CardioActivityType.bike => 'Bicicleta',
+  CardioActivityType.walk => 'Caminhada',
+  CardioActivityType.swim => 'Natação',
+  CardioActivityType.other => 'Outro',
+};
