@@ -63,6 +63,11 @@ class DashboardScreen extends ConsumerWidget {
             onPressed: () => context.push('/weigh-in'),
             child: const Text('Pesagem'),
           ),
+          const SizedBox(height: 8),
+          OutlinedButton(
+            onPressed: () => context.push('/exercises'),
+            child: const Text('Exercícios'),
+          ),
         ],
       ),
     );

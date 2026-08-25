@@ -44,6 +44,9 @@ class ExercisesDao extends DatabaseAccessor<AppDatabase>
     return query.watchSingleOrNull();
   }
 
+  Future<ExerciseVideo?> getVideoAttemptById(int id) =>
+      (select(exerciseVideos)..where((t) => t.id.equals(id))).getSingleOrNull();
+
   Future<int> insertVideoAttempt(ExerciseVideosCompanion entry) =>
       into(exerciseVideos).insert(entry);
 
