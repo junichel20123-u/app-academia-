@@ -1,5 +1,6 @@
 import 'package:drift/drift.dart';
 
+import '../../utils/slugify.dart';
 import '../app_database.dart';
 import '../enums.dart';
 
@@ -46,6 +47,7 @@ ExercisesCompanion _e(
 ) {
   return ExercisesCompanion.insert(
     name: name,
+    slug: Value(slugify(name)),
     muscleGroup: muscleGroup,
     equipment: Value(equipment),
     isCustom: const Value(false),

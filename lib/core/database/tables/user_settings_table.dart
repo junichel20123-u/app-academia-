@@ -12,6 +12,8 @@ class UserSettingsTable extends Table {
       textEnum<UnitSystem>().withDefault(Constant(UnitSystem.metric.name))();
   BoolColumn get streakFreezeEnabled =>
       boolean().withDefault(const Constant(false))();
+  BoolColumn get aiPlanBuilderPremiumUnlocked =>
+      boolean().withDefault(const Constant(false))();
 
   @override
   Set<Column> get primaryKey => {id};

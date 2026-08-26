@@ -1,6 +1,7 @@
 import 'package:app_academia/core/database/app_database.dart';
 import 'package:app_academia/core/database/enums.dart';
 import 'package:app_academia/core/database/seed/seed_exercises.dart';
+import 'package:app_academia/core/utils/slugify.dart';
 import 'package:drift/drift.dart' hide isNull;
 import 'package:flutter_test/flutter_test.dart';
 
@@ -18,6 +19,13 @@ void main() {
     expect(all.every((e) => !e.isCustom), isTrue);
   });
 
+  test('seeded exercises get a stable slug derived from their name', () async {
+    final all = await db.exercisesDao.getAllExercises();
+    for (final exercise in all) {
+      expect(exercise.slug, slugify(exercise.name));
+    }
+  });
+
   test('inserts, updates and deletes a custom exercise', () async {
     final id = await db.exercisesDao.insertExercise(
       ExercisesCompanion.insert(
@@ -30,6 +38,8 @@ void main() {
     final inserted = await db.exercisesDao.getExerciseById(id);
     expect(inserted!.name, 'Exercício customizado');
     expect(inserted.isCustom, isTrue);
+    // Custom exercises are personal and never addressable by a server/LLM.
+    expect(inserted.slug, isNull);
 
     await db.exercisesDao.updateExercise(
       inserted.copyWith(name: 'Nome atualizado'),

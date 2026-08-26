@@ -31,6 +31,16 @@ class $ExercisesTable extends Exercises
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _slugMeta = const VerificationMeta('slug');
+  @override
+  late final GeneratedColumn<String> slug = GeneratedColumn<String>(
+    'slug',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways('UNIQUE'),
+  );
   @override
   late final GeneratedColumnWithTypeConverter<MuscleGroup, String> muscleGroup =
       GeneratedColumn<String>(
@@ -91,6 +101,7 @@ class $ExercisesTable extends Exercises
   List<GeneratedColumn> get $columns => [
     id,
     name,
+    slug,
     muscleGroup,
     equipment,
     instructions,
@@ -119,6 +130,12 @@ class $ExercisesTable extends Exercises
       );
     } else if (isInserting) {
       context.missing(_nameMeta);
+    }
+    if (data.containsKey('slug')) {
+      context.handle(
+        _slugMeta,
+        slug.isAcceptableOrUnknown(data['slug']!, _slugMeta),
+      );
     }
     if (data.containsKey('instructions')) {
       context.handle(
@@ -158,6 +175,10 @@ class $ExercisesTable extends Exercises
         DriftSqlType.string,
         data['${effectivePrefix}name'],
       )!,
+      slug: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}slug'],
+      ),
       muscleGroup: $ExercisesTable.$convertermuscleGroup.fromSql(
         attachedDatabase.typeMapping.read(
           DriftSqlType.string,
@@ -201,6 +222,7 @@ class $ExercisesTable extends Exercises
 class Exercise extends DataClass implements Insertable<Exercise> {
   final int id;
   final String name;
+  final String? slug;
   final MuscleGroup muscleGroup;
   final Equipment? equipment;
   final String? instructions;
@@ -209,6 +231,7 @@ class Exercise extends DataClass implements Insertable<Exercise> {
   const Exercise({
     required this.id,
     required this.name,
+    this.slug,
     required this.muscleGroup,
     this.equipment,
     this.instructions,
@@ -220,6 +243,9 @@ class Exercise extends DataClass implements Insertable<Exercise> {
     final map = <String, Expression>{};
     map['id'] = Variable<int>(id);
     map['name'] = Variable<String>(name);
+    if (!nullToAbsent || slug != null) {
+      map['slug'] = Variable<String>(slug);
+    }
     {
       map['muscle_group'] = Variable<String>(
         $ExercisesTable.$convertermuscleGroup.toSql(muscleGroup),
@@ -242,6 +268,7 @@ class Exercise extends DataClass implements Insertable<Exercise> {
     return ExercisesCompanion(
       id: Value(id),
       name: Value(name),
+      slug: slug == null && nullToAbsent ? const Value.absent() : Value(slug),
       muscleGroup: Value(muscleGroup),
       equipment: equipment == null && nullToAbsent
           ? const Value.absent()
@@ -262,6 +289,7 @@ class Exercise extends DataClass implements Insertable<Exercise> {
     return Exercise(
       id: serializer.fromJson<int>(json['id']),
       name: serializer.fromJson<String>(json['name']),
+      slug: serializer.fromJson<String?>(json['slug']),
       muscleGroup: $ExercisesTable.$convertermuscleGroup.fromJson(
         serializer.fromJson<String>(json['muscleGroup']),
       ),
@@ -279,6 +307,7 @@ class Exercise extends DataClass implements Insertable<Exercise> {
     return <String, dynamic>{
       'id': serializer.toJson<int>(id),
       'name': serializer.toJson<String>(name),
+      'slug': serializer.toJson<String?>(slug),
       'muscleGroup': serializer.toJson<String>(
         $ExercisesTable.$convertermuscleGroup.toJson(muscleGroup),
       ),
@@ -294,6 +323,7 @@ class Exercise extends DataClass implements Insertable<Exercise> {
   Exercise copyWith({
     int? id,
     String? name,
+    Value<String?> slug = const Value.absent(),
     MuscleGroup? muscleGroup,
     Value<Equipment?> equipment = const Value.absent(),
     Value<String?> instructions = const Value.absent(),
@@ -302,6 +332,7 @@ class Exercise extends DataClass implements Insertable<Exercise> {
   }) => Exercise(
     id: id ?? this.id,
     name: name ?? this.name,
+    slug: slug.present ? slug.value : this.slug,
     muscleGroup: muscleGroup ?? this.muscleGroup,
     equipment: equipment.present ? equipment.value : this.equipment,
     instructions: instructions.present ? instructions.value : this.instructions,
@@ -312,6 +343,7 @@ class Exercise extends DataClass implements Insertable<Exercise> {
     return Exercise(
       id: data.id.present ? data.id.value : this.id,
       name: data.name.present ? data.name.value : this.name,
+      slug: data.slug.present ? data.slug.value : this.slug,
       muscleGroup: data.muscleGroup.present
           ? data.muscleGroup.value
           : this.muscleGroup,
@@ -329,6 +361,7 @@ class Exercise extends DataClass implements Insertable<Exercise> {
     return (StringBuffer('Exercise(')
           ..write('id: $id, ')
           ..write('name: $name, ')
+          ..write('slug: $slug, ')
           ..write('muscleGroup: $muscleGroup, ')
           ..write('equipment: $equipment, ')
           ..write('instructions: $instructions, ')
@@ -342,6 +375,7 @@ class Exercise extends DataClass implements Insertable<Exercise> {
   int get hashCode => Object.hash(
     id,
     name,
+    slug,
     muscleGroup,
     equipment,
     instructions,
@@ -354,6 +388,7 @@ class Exercise extends DataClass implements Insertable<Exercise> {
       (other is Exercise &&
           other.id == this.id &&
           other.name == this.name &&
+          other.slug == this.slug &&
           other.muscleGroup == this.muscleGroup &&
           other.equipment == this.equipment &&
           other.instructions == this.instructions &&
@@ -364,6 +399,7 @@ class Exercise extends DataClass implements Insertable<Exercise> {
 class ExercisesCompanion extends UpdateCompanion<Exercise> {
   final Value<int> id;
   final Value<String> name;
+  final Value<String?> slug;
   final Value<MuscleGroup> muscleGroup;
   final Value<Equipment?> equipment;
   final Value<String?> instructions;
@@ -372,6 +408,7 @@ class ExercisesCompanion extends UpdateCompanion<Exercise> {
   const ExercisesCompanion({
     this.id = const Value.absent(),
     this.name = const Value.absent(),
+    this.slug = const Value.absent(),
     this.muscleGroup = const Value.absent(),
     this.equipment = const Value.absent(),
     this.instructions = const Value.absent(),
@@ -381,6 +418,7 @@ class ExercisesCompanion extends UpdateCompanion<Exercise> {
   ExercisesCompanion.insert({
     this.id = const Value.absent(),
     required String name,
+    this.slug = const Value.absent(),
     required MuscleGroup muscleGroup,
     this.equipment = const Value.absent(),
     this.instructions = const Value.absent(),
@@ -391,6 +429,7 @@ class ExercisesCompanion extends UpdateCompanion<Exercise> {
   static Insertable<Exercise> custom({
     Expression<int>? id,
     Expression<String>? name,
+    Expression<String>? slug,
     Expression<String>? muscleGroup,
     Expression<String>? equipment,
     Expression<String>? instructions,
@@ -400,6 +439,7 @@ class ExercisesCompanion extends UpdateCompanion<Exercise> {
     return RawValuesInsertable({
       if (id != null) 'id': id,
       if (name != null) 'name': name,
+      if (slug != null) 'slug': slug,
       if (muscleGroup != null) 'muscle_group': muscleGroup,
       if (equipment != null) 'equipment': equipment,
       if (instructions != null) 'instructions': instructions,
@@ -411,6 +451,7 @@ class ExercisesCompanion extends UpdateCompanion<Exercise> {
   ExercisesCompanion copyWith({
     Value<int>? id,
     Value<String>? name,
+    Value<String?>? slug,
     Value<MuscleGroup>? muscleGroup,
     Value<Equipment?>? equipment,
     Value<String?>? instructions,
@@ -420,6 +461,7 @@ class ExercisesCompanion extends UpdateCompanion<Exercise> {
     return ExercisesCompanion(
       id: id ?? this.id,
       name: name ?? this.name,
+      slug: slug ?? this.slug,
       muscleGroup: muscleGroup ?? this.muscleGroup,
       equipment: equipment ?? this.equipment,
       instructions: instructions ?? this.instructions,
@@ -436,6 +478,9 @@ class ExercisesCompanion extends UpdateCompanion<Exercise> {
     }
     if (name.present) {
       map['name'] = Variable<String>(name.value);
+    }
+    if (slug.present) {
+      map['slug'] = Variable<String>(slug.value);
     }
     if (muscleGroup.present) {
       map['muscle_group'] = Variable<String>(
@@ -464,6 +509,7 @@ class ExercisesCompanion extends UpdateCompanion<Exercise> {
     return (StringBuffer('ExercisesCompanion(')
           ..write('id: $id, ')
           ..write('name: $name, ')
+          ..write('slug: $slug, ')
           ..write('muscleGroup: $muscleGroup, ')
           ..write('equipment: $equipment, ')
           ..write('instructions: $instructions, ')
@@ -3897,6 +3943,21 @@ class $UserSettingsTableTable extends UserSettingsTable
     ),
     defaultValue: const Constant(false),
   );
+  static const VerificationMeta _aiPlanBuilderPremiumUnlockedMeta =
+      const VerificationMeta('aiPlanBuilderPremiumUnlocked');
+  @override
+  late final GeneratedColumn<bool> aiPlanBuilderPremiumUnlocked =
+      GeneratedColumn<bool>(
+        'ai_plan_builder_premium_unlocked',
+        aliasedName,
+        false,
+        type: DriftSqlType.bool,
+        requiredDuringInsert: false,
+        defaultConstraints: GeneratedColumn.constraintIsAlways(
+          'CHECK ("ai_plan_builder_premium_unlocked" IN (0, 1))',
+        ),
+        defaultValue: const Constant(false),
+      );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -3905,6 +3966,7 @@ class $UserSettingsTableTable extends UserSettingsTable
     videoProviderApiKeyRef,
     unitSystem,
     streakFreezeEnabled,
+    aiPlanBuilderPremiumUnlocked,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -3957,6 +4019,15 @@ class $UserSettingsTableTable extends UserSettingsTable
         ),
       );
     }
+    if (data.containsKey('ai_plan_builder_premium_unlocked')) {
+      context.handle(
+        _aiPlanBuilderPremiumUnlockedMeta,
+        aiPlanBuilderPremiumUnlocked.isAcceptableOrUnknown(
+          data['ai_plan_builder_premium_unlocked']!,
+          _aiPlanBuilderPremiumUnlockedMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -3992,6 +4063,10 @@ class $UserSettingsTableTable extends UserSettingsTable
         DriftSqlType.bool,
         data['${effectivePrefix}streak_freeze_enabled'],
       )!,
+      aiPlanBuilderPremiumUnlocked: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}ai_plan_builder_premium_unlocked'],
+      )!,
     );
   }
 
@@ -4012,6 +4087,7 @@ class UserSettingsTableData extends DataClass
   final String? videoProviderApiKeyRef;
   final UnitSystem unitSystem;
   final bool streakFreezeEnabled;
+  final bool aiPlanBuilderPremiumUnlocked;
   const UserSettingsTableData({
     required this.id,
     this.videoProviderId,
@@ -4019,6 +4095,7 @@ class UserSettingsTableData extends DataClass
     this.videoProviderApiKeyRef,
     required this.unitSystem,
     required this.streakFreezeEnabled,
+    required this.aiPlanBuilderPremiumUnlocked,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -4041,6 +4118,9 @@ class UserSettingsTableData extends DataClass
       );
     }
     map['streak_freeze_enabled'] = Variable<bool>(streakFreezeEnabled);
+    map['ai_plan_builder_premium_unlocked'] = Variable<bool>(
+      aiPlanBuilderPremiumUnlocked,
+    );
     return map;
   }
 
@@ -4058,6 +4138,7 @@ class UserSettingsTableData extends DataClass
           : Value(videoProviderApiKeyRef),
       unitSystem: Value(unitSystem),
       streakFreezeEnabled: Value(streakFreezeEnabled),
+      aiPlanBuilderPremiumUnlocked: Value(aiPlanBuilderPremiumUnlocked),
     );
   }
 
@@ -4081,6 +4162,9 @@ class UserSettingsTableData extends DataClass
       streakFreezeEnabled: serializer.fromJson<bool>(
         json['streakFreezeEnabled'],
       ),
+      aiPlanBuilderPremiumUnlocked: serializer.fromJson<bool>(
+        json['aiPlanBuilderPremiumUnlocked'],
+      ),
     );
   }
   @override
@@ -4097,6 +4181,9 @@ class UserSettingsTableData extends DataClass
         $UserSettingsTableTable.$converterunitSystem.toJson(unitSystem),
       ),
       'streakFreezeEnabled': serializer.toJson<bool>(streakFreezeEnabled),
+      'aiPlanBuilderPremiumUnlocked': serializer.toJson<bool>(
+        aiPlanBuilderPremiumUnlocked,
+      ),
     };
   }
 
@@ -4107,6 +4194,7 @@ class UserSettingsTableData extends DataClass
     Value<String?> videoProviderApiKeyRef = const Value.absent(),
     UnitSystem? unitSystem,
     bool? streakFreezeEnabled,
+    bool? aiPlanBuilderPremiumUnlocked,
   }) => UserSettingsTableData(
     id: id ?? this.id,
     videoProviderId: videoProviderId.present
@@ -4120,6 +4208,8 @@ class UserSettingsTableData extends DataClass
         : this.videoProviderApiKeyRef,
     unitSystem: unitSystem ?? this.unitSystem,
     streakFreezeEnabled: streakFreezeEnabled ?? this.streakFreezeEnabled,
+    aiPlanBuilderPremiumUnlocked:
+        aiPlanBuilderPremiumUnlocked ?? this.aiPlanBuilderPremiumUnlocked,
   );
   UserSettingsTableData copyWithCompanion(UserSettingsTableCompanion data) {
     return UserSettingsTableData(
@@ -4139,6 +4229,9 @@ class UserSettingsTableData extends DataClass
       streakFreezeEnabled: data.streakFreezeEnabled.present
           ? data.streakFreezeEnabled.value
           : this.streakFreezeEnabled,
+      aiPlanBuilderPremiumUnlocked: data.aiPlanBuilderPremiumUnlocked.present
+          ? data.aiPlanBuilderPremiumUnlocked.value
+          : this.aiPlanBuilderPremiumUnlocked,
     );
   }
 
@@ -4150,7 +4243,8 @@ class UserSettingsTableData extends DataClass
           ..write('videoProviderBaseUrl: $videoProviderBaseUrl, ')
           ..write('videoProviderApiKeyRef: $videoProviderApiKeyRef, ')
           ..write('unitSystem: $unitSystem, ')
-          ..write('streakFreezeEnabled: $streakFreezeEnabled')
+          ..write('streakFreezeEnabled: $streakFreezeEnabled, ')
+          ..write('aiPlanBuilderPremiumUnlocked: $aiPlanBuilderPremiumUnlocked')
           ..write(')'))
         .toString();
   }
@@ -4163,6 +4257,7 @@ class UserSettingsTableData extends DataClass
     videoProviderApiKeyRef,
     unitSystem,
     streakFreezeEnabled,
+    aiPlanBuilderPremiumUnlocked,
   );
   @override
   bool operator ==(Object other) =>
@@ -4173,7 +4268,9 @@ class UserSettingsTableData extends DataClass
           other.videoProviderBaseUrl == this.videoProviderBaseUrl &&
           other.videoProviderApiKeyRef == this.videoProviderApiKeyRef &&
           other.unitSystem == this.unitSystem &&
-          other.streakFreezeEnabled == this.streakFreezeEnabled);
+          other.streakFreezeEnabled == this.streakFreezeEnabled &&
+          other.aiPlanBuilderPremiumUnlocked ==
+              this.aiPlanBuilderPremiumUnlocked);
 }
 
 class UserSettingsTableCompanion
@@ -4184,6 +4281,7 @@ class UserSettingsTableCompanion
   final Value<String?> videoProviderApiKeyRef;
   final Value<UnitSystem> unitSystem;
   final Value<bool> streakFreezeEnabled;
+  final Value<bool> aiPlanBuilderPremiumUnlocked;
   const UserSettingsTableCompanion({
     this.id = const Value.absent(),
     this.videoProviderId = const Value.absent(),
@@ -4191,6 +4289,7 @@ class UserSettingsTableCompanion
     this.videoProviderApiKeyRef = const Value.absent(),
     this.unitSystem = const Value.absent(),
     this.streakFreezeEnabled = const Value.absent(),
+    this.aiPlanBuilderPremiumUnlocked = const Value.absent(),
   });
   UserSettingsTableCompanion.insert({
     this.id = const Value.absent(),
@@ -4199,6 +4298,7 @@ class UserSettingsTableCompanion
     this.videoProviderApiKeyRef = const Value.absent(),
     this.unitSystem = const Value.absent(),
     this.streakFreezeEnabled = const Value.absent(),
+    this.aiPlanBuilderPremiumUnlocked = const Value.absent(),
   });
   static Insertable<UserSettingsTableData> custom({
     Expression<int>? id,
@@ -4207,6 +4307,7 @@ class UserSettingsTableCompanion
     Expression<String>? videoProviderApiKeyRef,
     Expression<String>? unitSystem,
     Expression<bool>? streakFreezeEnabled,
+    Expression<bool>? aiPlanBuilderPremiumUnlocked,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -4218,6 +4319,8 @@ class UserSettingsTableCompanion
       if (unitSystem != null) 'unit_system': unitSystem,
       if (streakFreezeEnabled != null)
         'streak_freeze_enabled': streakFreezeEnabled,
+      if (aiPlanBuilderPremiumUnlocked != null)
+        'ai_plan_builder_premium_unlocked': aiPlanBuilderPremiumUnlocked,
     });
   }
 
@@ -4228,6 +4331,7 @@ class UserSettingsTableCompanion
     Value<String?>? videoProviderApiKeyRef,
     Value<UnitSystem>? unitSystem,
     Value<bool>? streakFreezeEnabled,
+    Value<bool>? aiPlanBuilderPremiumUnlocked,
   }) {
     return UserSettingsTableCompanion(
       id: id ?? this.id,
@@ -4237,6 +4341,8 @@ class UserSettingsTableCompanion
           videoProviderApiKeyRef ?? this.videoProviderApiKeyRef,
       unitSystem: unitSystem ?? this.unitSystem,
       streakFreezeEnabled: streakFreezeEnabled ?? this.streakFreezeEnabled,
+      aiPlanBuilderPremiumUnlocked:
+          aiPlanBuilderPremiumUnlocked ?? this.aiPlanBuilderPremiumUnlocked,
     );
   }
 
@@ -4267,6 +4373,11 @@ class UserSettingsTableCompanion
     if (streakFreezeEnabled.present) {
       map['streak_freeze_enabled'] = Variable<bool>(streakFreezeEnabled.value);
     }
+    if (aiPlanBuilderPremiumUnlocked.present) {
+      map['ai_plan_builder_premium_unlocked'] = Variable<bool>(
+        aiPlanBuilderPremiumUnlocked.value,
+      );
+    }
     return map;
   }
 
@@ -4278,7 +4389,484 @@ class UserSettingsTableCompanion
           ..write('videoProviderBaseUrl: $videoProviderBaseUrl, ')
           ..write('videoProviderApiKeyRef: $videoProviderApiKeyRef, ')
           ..write('unitSystem: $unitSystem, ')
-          ..write('streakFreezeEnabled: $streakFreezeEnabled')
+          ..write('streakFreezeEnabled: $streakFreezeEnabled, ')
+          ..write('aiPlanBuilderPremiumUnlocked: $aiPlanBuilderPremiumUnlocked')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $CatalogTemplatesTable extends CatalogTemplates
+    with TableInfo<$CatalogTemplatesTable, CatalogTemplate> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $CatalogTemplatesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _slugMeta = const VerificationMeta('slug');
+  @override
+  late final GeneratedColumn<String> slug = GeneratedColumn<String>(
+    'slug',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _nameMeta = const VerificationMeta('name');
+  @override
+  late final GeneratedColumn<String> name = GeneratedColumn<String>(
+    'name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _descriptionMeta = const VerificationMeta(
+    'description',
+  );
+  @override
+  late final GeneratedColumn<String> description = GeneratedColumn<String>(
+    'description',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _goalMeta = const VerificationMeta('goal');
+  @override
+  late final GeneratedColumn<String> goal = GeneratedColumn<String>(
+    'goal',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _difficultyMeta = const VerificationMeta(
+    'difficulty',
+  );
+  @override
+  late final GeneratedColumn<String> difficulty = GeneratedColumn<String>(
+    'difficulty',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _payloadJsonMeta = const VerificationMeta(
+    'payloadJson',
+  );
+  @override
+  late final GeneratedColumn<String> payloadJson = GeneratedColumn<String>(
+    'payload_json',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    slug,
+    name,
+    description,
+    goal,
+    difficulty,
+    payloadJson,
+    updatedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'catalog_templates';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<CatalogTemplate> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('slug')) {
+      context.handle(
+        _slugMeta,
+        slug.isAcceptableOrUnknown(data['slug']!, _slugMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_slugMeta);
+    }
+    if (data.containsKey('name')) {
+      context.handle(
+        _nameMeta,
+        name.isAcceptableOrUnknown(data['name']!, _nameMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_nameMeta);
+    }
+    if (data.containsKey('description')) {
+      context.handle(
+        _descriptionMeta,
+        description.isAcceptableOrUnknown(
+          data['description']!,
+          _descriptionMeta,
+        ),
+      );
+    }
+    if (data.containsKey('goal')) {
+      context.handle(
+        _goalMeta,
+        goal.isAcceptableOrUnknown(data['goal']!, _goalMeta),
+      );
+    }
+    if (data.containsKey('difficulty')) {
+      context.handle(
+        _difficultyMeta,
+        difficulty.isAcceptableOrUnknown(data['difficulty']!, _difficultyMeta),
+      );
+    }
+    if (data.containsKey('payload_json')) {
+      context.handle(
+        _payloadJsonMeta,
+        payloadJson.isAcceptableOrUnknown(
+          data['payload_json']!,
+          _payloadJsonMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_payloadJsonMeta);
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {slug};
+  @override
+  CatalogTemplate map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return CatalogTemplate(
+      slug: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}slug'],
+      )!,
+      name: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}name'],
+      )!,
+      description: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}description'],
+      ),
+      goal: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}goal'],
+      ),
+      difficulty: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}difficulty'],
+      ),
+      payloadJson: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}payload_json'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      )!,
+    );
+  }
+
+  @override
+  $CatalogTemplatesTable createAlias(String alias) {
+    return $CatalogTemplatesTable(attachedDatabase, alias);
+  }
+}
+
+class CatalogTemplate extends DataClass implements Insertable<CatalogTemplate> {
+  final String slug;
+  final String name;
+  final String? description;
+  final String? goal;
+  final String? difficulty;
+  final String payloadJson;
+  final DateTime updatedAt;
+  const CatalogTemplate({
+    required this.slug,
+    required this.name,
+    this.description,
+    this.goal,
+    this.difficulty,
+    required this.payloadJson,
+    required this.updatedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['slug'] = Variable<String>(slug);
+    map['name'] = Variable<String>(name);
+    if (!nullToAbsent || description != null) {
+      map['description'] = Variable<String>(description);
+    }
+    if (!nullToAbsent || goal != null) {
+      map['goal'] = Variable<String>(goal);
+    }
+    if (!nullToAbsent || difficulty != null) {
+      map['difficulty'] = Variable<String>(difficulty);
+    }
+    map['payload_json'] = Variable<String>(payloadJson);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    return map;
+  }
+
+  CatalogTemplatesCompanion toCompanion(bool nullToAbsent) {
+    return CatalogTemplatesCompanion(
+      slug: Value(slug),
+      name: Value(name),
+      description: description == null && nullToAbsent
+          ? const Value.absent()
+          : Value(description),
+      goal: goal == null && nullToAbsent ? const Value.absent() : Value(goal),
+      difficulty: difficulty == null && nullToAbsent
+          ? const Value.absent()
+          : Value(difficulty),
+      payloadJson: Value(payloadJson),
+      updatedAt: Value(updatedAt),
+    );
+  }
+
+  factory CatalogTemplate.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return CatalogTemplate(
+      slug: serializer.fromJson<String>(json['slug']),
+      name: serializer.fromJson<String>(json['name']),
+      description: serializer.fromJson<String?>(json['description']),
+      goal: serializer.fromJson<String?>(json['goal']),
+      difficulty: serializer.fromJson<String?>(json['difficulty']),
+      payloadJson: serializer.fromJson<String>(json['payloadJson']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'slug': serializer.toJson<String>(slug),
+      'name': serializer.toJson<String>(name),
+      'description': serializer.toJson<String?>(description),
+      'goal': serializer.toJson<String?>(goal),
+      'difficulty': serializer.toJson<String?>(difficulty),
+      'payloadJson': serializer.toJson<String>(payloadJson),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+    };
+  }
+
+  CatalogTemplate copyWith({
+    String? slug,
+    String? name,
+    Value<String?> description = const Value.absent(),
+    Value<String?> goal = const Value.absent(),
+    Value<String?> difficulty = const Value.absent(),
+    String? payloadJson,
+    DateTime? updatedAt,
+  }) => CatalogTemplate(
+    slug: slug ?? this.slug,
+    name: name ?? this.name,
+    description: description.present ? description.value : this.description,
+    goal: goal.present ? goal.value : this.goal,
+    difficulty: difficulty.present ? difficulty.value : this.difficulty,
+    payloadJson: payloadJson ?? this.payloadJson,
+    updatedAt: updatedAt ?? this.updatedAt,
+  );
+  CatalogTemplate copyWithCompanion(CatalogTemplatesCompanion data) {
+    return CatalogTemplate(
+      slug: data.slug.present ? data.slug.value : this.slug,
+      name: data.name.present ? data.name.value : this.name,
+      description: data.description.present
+          ? data.description.value
+          : this.description,
+      goal: data.goal.present ? data.goal.value : this.goal,
+      difficulty: data.difficulty.present
+          ? data.difficulty.value
+          : this.difficulty,
+      payloadJson: data.payloadJson.present
+          ? data.payloadJson.value
+          : this.payloadJson,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CatalogTemplate(')
+          ..write('slug: $slug, ')
+          ..write('name: $name, ')
+          ..write('description: $description, ')
+          ..write('goal: $goal, ')
+          ..write('difficulty: $difficulty, ')
+          ..write('payloadJson: $payloadJson, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    slug,
+    name,
+    description,
+    goal,
+    difficulty,
+    payloadJson,
+    updatedAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is CatalogTemplate &&
+          other.slug == this.slug &&
+          other.name == this.name &&
+          other.description == this.description &&
+          other.goal == this.goal &&
+          other.difficulty == this.difficulty &&
+          other.payloadJson == this.payloadJson &&
+          other.updatedAt == this.updatedAt);
+}
+
+class CatalogTemplatesCompanion extends UpdateCompanion<CatalogTemplate> {
+  final Value<String> slug;
+  final Value<String> name;
+  final Value<String?> description;
+  final Value<String?> goal;
+  final Value<String?> difficulty;
+  final Value<String> payloadJson;
+  final Value<DateTime> updatedAt;
+  final Value<int> rowid;
+  const CatalogTemplatesCompanion({
+    this.slug = const Value.absent(),
+    this.name = const Value.absent(),
+    this.description = const Value.absent(),
+    this.goal = const Value.absent(),
+    this.difficulty = const Value.absent(),
+    this.payloadJson = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  CatalogTemplatesCompanion.insert({
+    required String slug,
+    required String name,
+    this.description = const Value.absent(),
+    this.goal = const Value.absent(),
+    this.difficulty = const Value.absent(),
+    required String payloadJson,
+    required DateTime updatedAt,
+    this.rowid = const Value.absent(),
+  }) : slug = Value(slug),
+       name = Value(name),
+       payloadJson = Value(payloadJson),
+       updatedAt = Value(updatedAt);
+  static Insertable<CatalogTemplate> custom({
+    Expression<String>? slug,
+    Expression<String>? name,
+    Expression<String>? description,
+    Expression<String>? goal,
+    Expression<String>? difficulty,
+    Expression<String>? payloadJson,
+    Expression<DateTime>? updatedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (slug != null) 'slug': slug,
+      if (name != null) 'name': name,
+      if (description != null) 'description': description,
+      if (goal != null) 'goal': goal,
+      if (difficulty != null) 'difficulty': difficulty,
+      if (payloadJson != null) 'payload_json': payloadJson,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  CatalogTemplatesCompanion copyWith({
+    Value<String>? slug,
+    Value<String>? name,
+    Value<String?>? description,
+    Value<String?>? goal,
+    Value<String?>? difficulty,
+    Value<String>? payloadJson,
+    Value<DateTime>? updatedAt,
+    Value<int>? rowid,
+  }) {
+    return CatalogTemplatesCompanion(
+      slug: slug ?? this.slug,
+      name: name ?? this.name,
+      description: description ?? this.description,
+      goal: goal ?? this.goal,
+      difficulty: difficulty ?? this.difficulty,
+      payloadJson: payloadJson ?? this.payloadJson,
+      updatedAt: updatedAt ?? this.updatedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (slug.present) {
+      map['slug'] = Variable<String>(slug.value);
+    }
+    if (name.present) {
+      map['name'] = Variable<String>(name.value);
+    }
+    if (description.present) {
+      map['description'] = Variable<String>(description.value);
+    }
+    if (goal.present) {
+      map['goal'] = Variable<String>(goal.value);
+    }
+    if (difficulty.present) {
+      map['difficulty'] = Variable<String>(difficulty.value);
+    }
+    if (payloadJson.present) {
+      map['payload_json'] = Variable<String>(payloadJson.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CatalogTemplatesCompanion(')
+          ..write('slug: $slug, ')
+          ..write('name: $name, ')
+          ..write('description: $description, ')
+          ..write('goal: $goal, ')
+          ..write('difficulty: $difficulty, ')
+          ..write('payloadJson: $payloadJson, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('rowid: $rowid')
           ..write(')'))
         .toString();
   }
@@ -4301,12 +4889,18 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $WeighInsTable weighIns = $WeighInsTable(this);
   late final $UserSettingsTableTable userSettingsTable =
       $UserSettingsTableTable(this);
+  late final $CatalogTemplatesTable catalogTemplates = $CatalogTemplatesTable(
+    this,
+  );
   late final ExercisesDao exercisesDao = ExercisesDao(this as AppDatabase);
   late final WorkoutsDao workoutsDao = WorkoutsDao(this as AppDatabase);
   late final SessionsDao sessionsDao = SessionsDao(this as AppDatabase);
   late final CardioDao cardioDao = CardioDao(this as AppDatabase);
   late final WeighInsDao weighInsDao = WeighInsDao(this as AppDatabase);
   late final UserSettingsDao userSettingsDao = UserSettingsDao(
+    this as AppDatabase,
+  );
+  late final CatalogTemplatesDao catalogTemplatesDao = CatalogTemplatesDao(
     this as AppDatabase,
   );
   @override
@@ -4323,6 +4917,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     cardioEntries,
     weighIns,
     userSettingsTable,
+    catalogTemplates,
   ];
   @override
   StreamQueryUpdateRules get streamUpdateRules => const StreamQueryUpdateRules([
@@ -4367,6 +4962,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
 typedef $$ExercisesTableCreateCompanionBuilder = ExercisesCompanion Function({
   Value<int> id,
   required String name,
+  Value<String?> slug,
   required MuscleGroup muscleGroup,
   Value<Equipment?> equipment,
   Value<String?> instructions,
@@ -4376,6 +4972,7 @@ typedef $$ExercisesTableCreateCompanionBuilder = ExercisesCompanion Function({
 typedef $$ExercisesTableUpdateCompanionBuilder = ExercisesCompanion Function({
   Value<int> id,
   Value<String> name,
+  Value<String?> slug,
   Value<MuscleGroup> muscleGroup,
   Value<Equipment?> equipment,
   Value<String?> instructions,
@@ -4460,6 +5057,11 @@ class $$ExercisesTableFilterComposer
 
   ColumnFilters<String> get name => $composableBuilder(
     column: $table.name,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get slug => $composableBuilder(
+    column: $table.slug,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -4585,6 +5187,11 @@ class $$ExercisesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get slug => $composableBuilder(
+    column: $table.slug,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get muscleGroup => $composableBuilder(
     column: $table.muscleGroup,
     builder: (column) => ColumnOrderings(column),
@@ -4625,6 +5232,9 @@ class $$ExercisesTableAnnotationComposer
 
   GeneratedColumn<String> get name =>
       $composableBuilder(column: $table.name, builder: (column) => column);
+
+  GeneratedColumn<String> get slug =>
+      $composableBuilder(column: $table.slug, builder: (column) => column);
 
   GeneratedColumnWithTypeConverter<MuscleGroup, String> get muscleGroup =>
       $composableBuilder(
@@ -4756,6 +5366,7 @@ class $$ExercisesTableTableManager
               ({
                 Value<int> id = const Value.absent(),
                 Value<String> name = const Value.absent(),
+                Value<String?> slug = const Value.absent(),
                 Value<MuscleGroup> muscleGroup = const Value.absent(),
                 Value<Equipment?> equipment = const Value.absent(),
                 Value<String?> instructions = const Value.absent(),
@@ -4764,6 +5375,7 @@ class $$ExercisesTableTableManager
               }) => ExercisesCompanion(
                 id: id,
                 name: name,
+                slug: slug,
                 muscleGroup: muscleGroup,
                 equipment: equipment,
                 instructions: instructions,
@@ -4774,6 +5386,7 @@ class $$ExercisesTableTableManager
               ({
                 Value<int> id = const Value.absent(),
                 required String name,
+                Value<String?> slug = const Value.absent(),
                 required MuscleGroup muscleGroup,
                 Value<Equipment?> equipment = const Value.absent(),
                 Value<String?> instructions = const Value.absent(),
@@ -4782,6 +5395,7 @@ class $$ExercisesTableTableManager
               }) => ExercisesCompanion.insert(
                 id: id,
                 name: name,
+                slug: slug,
                 muscleGroup: muscleGroup,
                 equipment: equipment,
                 instructions: instructions,
@@ -7749,6 +8363,7 @@ typedef $$UserSettingsTableTableCreateCompanionBuilder =
       Value<String?> videoProviderApiKeyRef,
       Value<UnitSystem> unitSystem,
       Value<bool> streakFreezeEnabled,
+      Value<bool> aiPlanBuilderPremiumUnlocked,
     });
 typedef $$UserSettingsTableTableUpdateCompanionBuilder =
     UserSettingsTableCompanion Function({
@@ -7758,6 +8373,7 @@ typedef $$UserSettingsTableTableUpdateCompanionBuilder =
       Value<String?> videoProviderApiKeyRef,
       Value<UnitSystem> unitSystem,
       Value<bool> streakFreezeEnabled,
+      Value<bool> aiPlanBuilderPremiumUnlocked,
     });
 
 class $$UserSettingsTableTableFilterComposer
@@ -7797,6 +8413,11 @@ class $$UserSettingsTableTableFilterComposer
 
   ColumnFilters<bool> get streakFreezeEnabled => $composableBuilder(
     column: $table.streakFreezeEnabled,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get aiPlanBuilderPremiumUnlocked => $composableBuilder(
+    column: $table.aiPlanBuilderPremiumUnlocked,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -7839,6 +8460,11 @@ class $$UserSettingsTableTableOrderingComposer
     column: $table.streakFreezeEnabled,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<bool> get aiPlanBuilderPremiumUnlocked => $composableBuilder(
+    column: $table.aiPlanBuilderPremiumUnlocked,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$UserSettingsTableTableAnnotationComposer
@@ -7876,6 +8502,11 @@ class $$UserSettingsTableTableAnnotationComposer
 
   GeneratedColumn<bool> get streakFreezeEnabled => $composableBuilder(
     column: $table.streakFreezeEnabled,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get aiPlanBuilderPremiumUnlocked => $composableBuilder(
+    column: $table.aiPlanBuilderPremiumUnlocked,
     builder: (column) => column,
   );
 }
@@ -7926,6 +8557,7 @@ class $$UserSettingsTableTableTableManager
                 Value<String?> videoProviderApiKeyRef = const Value.absent(),
                 Value<UnitSystem> unitSystem = const Value.absent(),
                 Value<bool> streakFreezeEnabled = const Value.absent(),
+                Value<bool> aiPlanBuilderPremiumUnlocked = const Value.absent(),
               }) => UserSettingsTableCompanion(
                 id: id,
                 videoProviderId: videoProviderId,
@@ -7933,6 +8565,7 @@ class $$UserSettingsTableTableTableManager
                 videoProviderApiKeyRef: videoProviderApiKeyRef,
                 unitSystem: unitSystem,
                 streakFreezeEnabled: streakFreezeEnabled,
+                aiPlanBuilderPremiumUnlocked: aiPlanBuilderPremiumUnlocked,
               ),
           createCompanionCallback:
               ({
@@ -7942,6 +8575,7 @@ class $$UserSettingsTableTableTableManager
                 Value<String?> videoProviderApiKeyRef = const Value.absent(),
                 Value<UnitSystem> unitSystem = const Value.absent(),
                 Value<bool> streakFreezeEnabled = const Value.absent(),
+                Value<bool> aiPlanBuilderPremiumUnlocked = const Value.absent(),
               }) => UserSettingsTableCompanion.insert(
                 id: id,
                 videoProviderId: videoProviderId,
@@ -7949,6 +8583,7 @@ class $$UserSettingsTableTableTableManager
                 videoProviderApiKeyRef: videoProviderApiKeyRef,
                 unitSystem: unitSystem,
                 streakFreezeEnabled: streakFreezeEnabled,
+                aiPlanBuilderPremiumUnlocked: aiPlanBuilderPremiumUnlocked,
               ),
           withReferenceMapper: (p0) => p0
               .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
@@ -7979,6 +8614,256 @@ typedef $$UserSettingsTableTableProcessedTableManager =
       UserSettingsTableData,
       PrefetchHooks Function()
     >;
+typedef $$CatalogTemplatesTableCreateCompanionBuilder =
+    CatalogTemplatesCompanion Function({
+      required String slug,
+      required String name,
+      Value<String?> description,
+      Value<String?> goal,
+      Value<String?> difficulty,
+      required String payloadJson,
+      required DateTime updatedAt,
+      Value<int> rowid,
+    });
+typedef $$CatalogTemplatesTableUpdateCompanionBuilder =
+    CatalogTemplatesCompanion Function({
+      Value<String> slug,
+      Value<String> name,
+      Value<String?> description,
+      Value<String?> goal,
+      Value<String?> difficulty,
+      Value<String> payloadJson,
+      Value<DateTime> updatedAt,
+      Value<int> rowid,
+    });
+
+class $$CatalogTemplatesTableFilterComposer
+    extends Composer<_$AppDatabase, $CatalogTemplatesTable> {
+  $$CatalogTemplatesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get slug => $composableBuilder(
+    column: $table.slug,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get description => $composableBuilder(
+    column: $table.description,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get goal => $composableBuilder(
+    column: $table.goal,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get difficulty => $composableBuilder(
+    column: $table.difficulty,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get payloadJson => $composableBuilder(
+    column: $table.payloadJson,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$CatalogTemplatesTableOrderingComposer
+    extends Composer<_$AppDatabase, $CatalogTemplatesTable> {
+  $$CatalogTemplatesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get slug => $composableBuilder(
+    column: $table.slug,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get description => $composableBuilder(
+    column: $table.description,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get goal => $composableBuilder(
+    column: $table.goal,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get difficulty => $composableBuilder(
+    column: $table.difficulty,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get payloadJson => $composableBuilder(
+    column: $table.payloadJson,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$CatalogTemplatesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $CatalogTemplatesTable> {
+  $$CatalogTemplatesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get slug =>
+      $composableBuilder(column: $table.slug, builder: (column) => column);
+
+  GeneratedColumn<String> get name =>
+      $composableBuilder(column: $table.name, builder: (column) => column);
+
+  GeneratedColumn<String> get description => $composableBuilder(
+    column: $table.description,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get goal =>
+      $composableBuilder(column: $table.goal, builder: (column) => column);
+
+  GeneratedColumn<String> get difficulty => $composableBuilder(
+    column: $table.difficulty,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get payloadJson => $composableBuilder(
+    column: $table.payloadJson,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+}
+
+class $$CatalogTemplatesTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $CatalogTemplatesTable,
+          CatalogTemplate,
+          $$CatalogTemplatesTableFilterComposer,
+          $$CatalogTemplatesTableOrderingComposer,
+          $$CatalogTemplatesTableAnnotationComposer,
+          $$CatalogTemplatesTableCreateCompanionBuilder,
+          $$CatalogTemplatesTableUpdateCompanionBuilder,
+          (
+            CatalogTemplate,
+            BaseReferences<
+              _$AppDatabase,
+              $CatalogTemplatesTable,
+              CatalogTemplate
+            >,
+          ),
+          CatalogTemplate,
+          PrefetchHooks Function()
+        > {
+  $$CatalogTemplatesTableTableManager(
+    _$AppDatabase db,
+    $CatalogTemplatesTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$CatalogTemplatesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$CatalogTemplatesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$CatalogTemplatesTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> slug = const Value.absent(),
+                Value<String> name = const Value.absent(),
+                Value<String?> description = const Value.absent(),
+                Value<String?> goal = const Value.absent(),
+                Value<String?> difficulty = const Value.absent(),
+                Value<String> payloadJson = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => CatalogTemplatesCompanion(
+                slug: slug,
+                name: name,
+                description: description,
+                goal: goal,
+                difficulty: difficulty,
+                payloadJson: payloadJson,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String slug,
+                required String name,
+                Value<String?> description = const Value.absent(),
+                Value<String?> goal = const Value.absent(),
+                Value<String?> difficulty = const Value.absent(),
+                required String payloadJson,
+                required DateTime updatedAt,
+                Value<int> rowid = const Value.absent(),
+              }) => CatalogTemplatesCompanion.insert(
+                slug: slug,
+                name: name,
+                description: description,
+                goal: goal,
+                difficulty: difficulty,
+                payloadJson: payloadJson,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$CatalogTemplatesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $CatalogTemplatesTable,
+      CatalogTemplate,
+      $$CatalogTemplatesTableFilterComposer,
+      $$CatalogTemplatesTableOrderingComposer,
+      $$CatalogTemplatesTableAnnotationComposer,
+      $$CatalogTemplatesTableCreateCompanionBuilder,
+      $$CatalogTemplatesTableUpdateCompanionBuilder,
+      (
+        CatalogTemplate,
+        BaseReferences<_$AppDatabase, $CatalogTemplatesTable, CatalogTemplate>,
+      ),
+      CatalogTemplate,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -8001,4 +8886,6 @@ class $AppDatabaseManager {
       $$WeighInsTableTableManager(_db, _db.weighIns);
   $$UserSettingsTableTableTableManager get userSettingsTable =>
       $$UserSettingsTableTableTableManager(_db, _db.userSettingsTable);
+  $$CatalogTemplatesTableTableManager get catalogTemplates =>
+      $$CatalogTemplatesTableTableManager(_db, _db.catalogTemplates);
 }

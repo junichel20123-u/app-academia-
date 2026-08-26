@@ -36,5 +36,6 @@ class UserSettingsDao extends DatabaseAccessor<AppDatabase>
     videoProviderApiKeyRef: null,
     unitSystem: UnitSystem.metric,
     streakFreezeEnabled: false,
+    aiPlanBuilderPremiumUnlocked: false,
   );
 }
