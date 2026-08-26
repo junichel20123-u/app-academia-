@@ -7,8 +7,11 @@ import {
   SYSTEM_PROMPT,
 } from "./plan.ts";
 
-// Configurable without a redeploy — see the app's M15 plan note.
-const MODEL = Deno.env.get("ANTHROPIC_MODEL") ?? "claude-sonnet-5";
+// Configurable without a redeploy — see the app's M15/M17 plan notes. Haiku
+// 4.5 (not Sonnet) by default: generation is structurally constrained by
+// planSchema (closed exerciseSlug enum, exact day count), so correctness
+// doesn't depend on a larger model — Haiku is half the price.
+const MODEL = Deno.env.get("ANTHROPIC_MODEL") ?? "claude-haiku-4-5-20251001";
 
 function jsonResponse(body: unknown, status: number): Response {
   return new Response(JSON.stringify(body), {
