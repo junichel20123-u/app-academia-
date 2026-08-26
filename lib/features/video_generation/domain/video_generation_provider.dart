@@ -39,4 +39,8 @@ abstract class VideoGenerationProvider {
     required String resultUrl,
     Map<String, String>? credentials,
   });
+
+  /// Light client-side check (e.g. "is the key non-empty") — not a network
+  /// call. Real validation happens on the first actual generation request.
+  bool validateCredentials(Map<String, String>? credentials);
 }

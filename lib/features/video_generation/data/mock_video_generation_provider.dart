@@ -70,4 +70,7 @@ class MockVideoGenerationProvider implements VideoGenerationProvider {
     // real provider is wired in (M9), this returns actual video bytes.
     return List<int>.filled(256, 0);
   }
+
+  @override
+  bool validateCredentials(Map<String, String>? credentials) => true;
 }

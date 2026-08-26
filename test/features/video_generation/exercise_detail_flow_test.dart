@@ -2,6 +2,8 @@ import 'package:app_academia/core/database/app_database.dart';
 import 'package:app_academia/core/database/enums.dart';
 import 'package:app_academia/core/providers/database_provider.dart';
 import 'package:app_academia/features/exercises/presentation/exercise_detail_screen.dart';
+import 'package:app_academia/features/settings/application/user_settings_providers.dart';
+import 'package:app_academia/features/settings/data/user_settings_repository.dart';
 import 'package:app_academia/features/video_generation/application/exercise_video_providers.dart';
 import 'package:app_academia/features/video_generation/data/exercise_videos_repository.dart';
 import 'package:app_academia/features/video_generation/data/mock_video_generation_provider.dart';
@@ -13,6 +15,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../support/fake_file_storage_service.dart';
+import '../../support/fake_secure_storage_service.dart';
 
 void main() {
   testWidgets('tapping Gerar vídeo drives the full pipeline through to Ready', (
@@ -122,4 +125,40 @@ void main() {
     await tester.pumpWidget(const SizedBox());
     await tester.pump(const Duration(milliseconds: 50));
   });
+
+  testWidgets(
+    'renders NotConfigured when the selected provider has no stored key',
+    (tester) async {
+      final db = AppDatabase.forTesting(NativeDatabase.memory());
+      addTearDown(db.close);
+      final exercise = (await db.exercisesDao.getAllExercises()).first;
+      final repository = UserSettingsRepository(
+        db,
+        secureStorage: FakeSecureStorageService(),
+      );
+      await repository.saveVideoProviderConfig(providerId: 'http_custom');
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            appDatabaseProvider.overrideWithValue(db),
+            userSettingsRepositoryProvider.overrideWithValue(repository),
+          ],
+          child: MaterialApp(
+            home: ExerciseDetailScreen(exerciseId: exercise.id),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text('Configure um provedor de vídeo em Configurações.'),
+        findsOneWidget,
+      );
+      expect(find.text('Gerar vídeo'), findsNothing);
+
+      await tester.pumpWidget(const SizedBox());
+      await tester.pump(const Duration(milliseconds: 50));
+    },
+  );
 }

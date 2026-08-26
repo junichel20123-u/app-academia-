@@ -6,6 +6,7 @@ import '../features/exercises/presentation/exercise_detail_screen.dart';
 import '../features/exercises/presentation/exercise_library_screen.dart';
 import '../features/sessions/presentation/active_session_screen.dart';
 import '../features/sessions/presentation/session_history_screen.dart';
+import '../features/settings/presentation/settings_screen.dart';
 import '../features/weigh_in/presentation/weigh_in_screen.dart';
 import '../features/workouts/presentation/workout_edit_screen.dart';
 import '../features/workouts/presentation/workout_library_screen.dart';
@@ -50,6 +51,10 @@ final appRouter = GoRouter(
         final id = int.parse(state.pathParameters['id']!);
         return ExerciseDetailScreen(exerciseId: id);
       },
+    ),
+    GoRoute(
+      path: '/settings',
+      builder: (context, state) => const SettingsScreen(),
     ),
   ],
 );
