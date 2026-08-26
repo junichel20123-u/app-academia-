@@ -75,9 +75,9 @@ Future<LoggedSetInput?> showLogSetDialog(
               final weight = double.tryParse(weightController.text.trim());
               final reps = int.tryParse(repsController.text.trim());
               final rpe = double.tryParse(rpeController.text.trim());
-              if ((weight != null && weight < 0) ||
+              if ((weight != null && !(weight.isFinite && weight >= 0)) ||
                   (reps != null && reps < 0) ||
-                  (rpe != null && rpe < 0)) {
+                  (rpe != null && !(rpe.isFinite && rpe >= 0))) {
                 return;
               }
               Navigator.of(dialogContext).pop(

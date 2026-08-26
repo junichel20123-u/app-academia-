@@ -62,4 +62,39 @@ void main() {
     await tester.pumpWidget(const SizedBox());
     await tester.pump(const Duration(milliseconds: 50));
   });
+
+  testWidgets('negative distance or calories does not save the entry', (
+    tester,
+  ) async {
+    final db = AppDatabase.forTesting(NativeDatabase.memory());
+    addTearDown(db.close);
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [appDatabaseProvider.overrideWithValue(db)],
+        child: const MaterialApp(home: CardioScreen()),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byIcon(Icons.add));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.widgetWithText(TextField, 'Duração em minutos'),
+      '30',
+    );
+    await tester.enterText(
+      find.widgetWithText(TextField, 'Distância em km (opcional)'),
+      '-5',
+    );
+    await tester.tap(find.text('Salvar'));
+    await tester.pumpAndSettle();
+
+    // Dialog stays open — the entry was not saved.
+    expect(find.text('Novo cardio'), findsOneWidget);
+    expect(find.text('Nenhum registro de cardio ainda.'), findsOneWidget);
+
+    await tester.pumpWidget(const SizedBox());
+    await tester.pump(const Duration(milliseconds: 50));
+  });
 }
