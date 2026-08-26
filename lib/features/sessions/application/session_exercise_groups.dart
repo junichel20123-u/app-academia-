@@ -77,3 +77,12 @@ List<SessionExerciseGroup> buildSessionExerciseGroups({
 
   return groups;
 }
+
+/// The set number to use for a new set being added to a group. The highest
+/// existing set number plus one — not `loggedSets.length + 1` — so deleting
+/// a set that isn't the last one never produces a new set that collides
+/// with (duplicates the displayed number of) a set that's still there.
+int nextSetNumber(List<LoggedSet> loggedSets) {
+  if (loggedSets.isEmpty) return 1;
+  return loggedSets.map((s) => s.setNumber).reduce((a, b) => a > b ? a : b) + 1;
+}

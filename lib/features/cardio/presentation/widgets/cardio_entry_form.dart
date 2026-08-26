@@ -143,12 +143,15 @@ Future<CardioEntryInput?> showCardioEntryForm(
                   final minutes = int.tryParse(durationController.text.trim());
                   if (minutes == null || minutes <= 0) return;
                   final km = double.tryParse(distanceController.text.trim());
+                  if (km != null && km < 0) return;
+                  final calories = int.tryParse(caloriesController.text.trim());
+                  if (calories != null && calories < 0) return;
                   Navigator.of(dialogContext).pop(
                     CardioEntryInput(
                       activityType: activityType,
                       durationSeconds: minutes * 60,
                       distanceMeters: km != null ? km * 1000 : null,
-                      calories: int.tryParse(caloriesController.text.trim()),
+                      calories: calories,
                       occurredAt: occurredAt,
                       notes: notesController.text.trim().isEmpty
                           ? null

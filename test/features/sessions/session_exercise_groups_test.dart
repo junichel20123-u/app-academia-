@@ -108,4 +108,31 @@ void main() {
     expect(groups, hasLength(1));
     expect(groups.first.loggedSets, hasLength(2));
   });
+
+  group('nextSetNumber', () {
+    test('starts at 1 for an empty group', () {
+      expect(nextSetNumber(const []), 1);
+    });
+
+    test('is one past the highest existing set number', () {
+      final sets = [
+        _set(id: 1, exerciseId: 10, setNumber: 1),
+        _set(id: 2, exerciseId: 10, setNumber: 2),
+        _set(id: 3, exerciseId: 10, setNumber: 3),
+      ];
+      expect(nextSetNumber(sets), 4);
+    });
+
+    test(
+      'does not collide with a remaining set after a middle one was deleted',
+      () {
+        // Sets 1/2/3 logged, then set 2 deleted — only 1 and 3 remain.
+        final remaining = [
+          _set(id: 1, exerciseId: 10, setNumber: 1),
+          _set(id: 3, exerciseId: 10, setNumber: 3),
+        ];
+        expect(nextSetNumber(remaining), 4);
+      },
+    );
+  });
 }

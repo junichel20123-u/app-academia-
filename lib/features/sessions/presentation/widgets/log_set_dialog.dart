@@ -72,11 +72,19 @@ Future<LoggedSetInput?> showLogSetDialog(
           ),
           FilledButton(
             onPressed: () {
+              final weight = double.tryParse(weightController.text.trim());
+              final reps = int.tryParse(repsController.text.trim());
+              final rpe = double.tryParse(rpeController.text.trim());
+              if ((weight != null && weight < 0) ||
+                  (reps != null && reps < 0) ||
+                  (rpe != null && rpe < 0)) {
+                return;
+              }
               Navigator.of(dialogContext).pop(
                 LoggedSetInput(
-                  weight: double.tryParse(weightController.text.trim()),
-                  reps: int.tryParse(repsController.text.trim()),
-                  rpe: double.tryParse(rpeController.text.trim()),
+                  weight: weight,
+                  reps: reps,
+                  rpe: rpe,
                   notes: notesController.text.trim().isEmpty
                       ? null
                       : notesController.text.trim(),

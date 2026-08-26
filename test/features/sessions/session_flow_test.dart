@@ -123,4 +123,85 @@ void main() {
     await tester.pumpWidget(const SizedBox());
     await tester.pump(const Duration(milliseconds: 50));
   });
+
+  testWidgets(
+    'deleting a middle set does not create a duplicate set number for the '
+    'next one logged',
+    (tester) async {
+      final db = AppDatabase.forTesting(NativeDatabase.memory());
+      addTearDown(db.close);
+      appRouter.go('/');
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [appDatabaseProvider.overrideWithValue(db)],
+          child: MaterialApp.router(routerConfig: appRouter),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Treino livre'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Adicionar exercício'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Supino reto com barra'));
+      await tester.pumpAndSettle();
+
+      // Set 1 (first-set dialog opened automatically after adding).
+      await tester.enterText(
+        find.widgetWithText(TextField, 'Peso em kg (opcional)'),
+        '10',
+      );
+      await tester.tap(find.text('Salvar'));
+      await tester.pumpAndSettle();
+
+      // Set 2.
+      await tester.tap(find.text('Registrar série'));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.widgetWithText(TextField, 'Peso em kg (opcional)'),
+        '20',
+      );
+      await tester.tap(find.text('Salvar'));
+      await tester.pumpAndSettle();
+
+      // Set 3.
+      await tester.tap(find.text('Registrar série'));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.widgetWithText(TextField, 'Peso em kg (opcional)'),
+        '30',
+      );
+      await tester.tap(find.text('Salvar'));
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining('Série 1'), findsOneWidget);
+      expect(find.textContaining('Série 2'), findsOneWidget);
+      expect(find.textContaining('Série 3'), findsOneWidget);
+
+      // Delete set 2 (the middle one) — index 1 among the three delete icons.
+      await tester.tap(find.byIcon(Icons.delete_outline).at(1));
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining('Série 2'), findsNothing);
+      expect(find.textContaining('Série 3'), findsOneWidget);
+
+      // Log a new set: must not collide with the "Série 3" still on screen.
+      await tester.tap(find.text('Registrar série'));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.widgetWithText(TextField, 'Peso em kg (opcional)'),
+        '40',
+      );
+      await tester.tap(find.text('Salvar'));
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining('Série 3'), findsOneWidget);
+      expect(find.textContaining('Série 4'), findsOneWidget);
+
+      await tester.pumpWidget(const SizedBox());
+      await tester.pump(const Duration(milliseconds: 50));
+    },
+  );
 }

@@ -104,7 +104,7 @@ class ActiveSessionScreen extends ConsumerWidget {
                                   ref,
                                   exerciseId: group.exerciseId,
                                   workoutExerciseId: group.workoutExerciseId,
-                                  setNumber: group.loggedSets.length + 1,
+                                  setNumber: nextSetNumber(group.loggedSets),
                                   defaultReps: group.targetReps,
                                   defaultWeight: group.targetWeight,
                                 ),
