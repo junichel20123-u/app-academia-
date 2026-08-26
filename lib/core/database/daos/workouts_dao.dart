@@ -6,6 +6,29 @@ import '../tables/workouts_table.dart';
 
 part 'workouts_dao.g.dart';
 
+/// One already-resolved exercise entry (real local `exerciseId`, not a
+/// slug) to add to a new workout — the input to [WorkoutsDao.
+/// createWorkoutWithExercises].
+class WorkoutExerciseEntry {
+  const WorkoutExerciseEntry({
+    required this.exerciseId,
+    required this.orderIndex,
+    required this.targetSets,
+    this.targetReps,
+    this.targetWeight,
+    this.targetRestSeconds,
+    this.notes,
+  });
+
+  final int exerciseId;
+  final int orderIndex;
+  final int targetSets;
+  final int? targetReps;
+  final double? targetWeight;
+  final int? targetRestSeconds;
+  final String? notes;
+}
+
 @DriftAccessor(tables: [Workouts, WorkoutExercises])
 class WorkoutsDao extends DatabaseAccessor<AppDatabase>
     with _$WorkoutsDaoMixin {
@@ -81,6 +104,43 @@ class WorkoutsDao extends DatabaseAccessor<AppDatabase>
         );
       }
       return newWorkoutId;
+    });
+  }
+
+  /// Creates a new workout template from a name plus a list of already-
+  /// resolved exercise entries. The single "name + resolved exercises ->
+  /// real Workout" code path — used by "copy from catalog" (template_catalog
+  /// feature) and, later, by AI-generated plan import.
+  Future<int> createWorkoutWithExercises({
+    required String name,
+    String? notes,
+    required List<WorkoutExerciseEntry> entries,
+  }) {
+    return transaction(() async {
+      final now = DateTime.now();
+      final workoutId = await insertWorkout(
+        WorkoutsCompanion.insert(
+          name: name,
+          notes: Value(notes),
+          createdAt: Value(now),
+          updatedAt: Value(now),
+        ),
+      );
+      for (final entry in entries) {
+        await insertWorkoutExercise(
+          WorkoutExercisesCompanion.insert(
+            workoutId: workoutId,
+            exerciseId: entry.exerciseId,
+            orderIndex: entry.orderIndex,
+            targetSets: entry.targetSets,
+            targetReps: Value(entry.targetReps),
+            targetWeight: Value(entry.targetWeight),
+            targetRestSeconds: Value(entry.targetRestSeconds),
+            notes: Value(entry.notes),
+          ),
+        );
+      }
+      return workoutId;
     });
   }
 }

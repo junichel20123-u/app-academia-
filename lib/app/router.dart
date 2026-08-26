@@ -7,6 +7,8 @@ import '../features/exercises/presentation/exercise_library_screen.dart';
 import '../features/sessions/presentation/active_session_screen.dart';
 import '../features/sessions/presentation/session_history_screen.dart';
 import '../features/settings/presentation/settings_screen.dart';
+import '../features/template_catalog/presentation/template_catalog_screen.dart';
+import '../features/template_catalog/presentation/template_detail_screen.dart';
 import '../features/weigh_in/presentation/weigh_in_screen.dart';
 import '../features/workouts/presentation/workout_edit_screen.dart';
 import '../features/workouts/presentation/workout_library_screen.dart';
@@ -55,6 +57,17 @@ final appRouter = GoRouter(
     GoRoute(
       path: '/settings',
       builder: (context, state) => const SettingsScreen(),
+    ),
+    GoRoute(
+      path: '/templates',
+      builder: (context, state) => const TemplateCatalogScreen(),
+    ),
+    GoRoute(
+      path: '/templates/:slug',
+      builder: (context, state) {
+        final slug = state.pathParameters['slug']!;
+        return TemplateDetailScreen(slug: slug);
+      },
     ),
   ],
 );

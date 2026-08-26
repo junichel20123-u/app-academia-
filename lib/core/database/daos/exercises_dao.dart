@@ -18,6 +18,12 @@ class ExercisesDao extends DatabaseAccessor<AppDatabase>
   Future<Exercise?> getExerciseById(int id) =>
       (select(exercises)..where((t) => t.id.equals(id))).getSingleOrNull();
 
+  /// Resolves a catalog/server exercise reference to the local row with the
+  /// same stable slug — null if this install doesn't have it (e.g. the
+  /// catalog references an exercise added to the seed after this install).
+  Future<Exercise?> getExerciseBySlug(String slug) =>
+      (select(exercises)..where((t) => t.slug.equals(slug))).getSingleOrNull();
+
   Future<int> insertExercise(ExercisesCompanion entry) =>
       into(exercises).insert(entry);
 

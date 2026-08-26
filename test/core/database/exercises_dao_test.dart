@@ -26,6 +26,22 @@ void main() {
     }
   });
 
+  test('getExerciseBySlug resolves a seeded exercise by its slug', () async {
+    final all = await db.exercisesDao.getAllExercises();
+    final expected = all.first;
+
+    final resolved = await db.exercisesDao.getExerciseBySlug(expected.slug!);
+
+    expect(resolved!.id, expected.id);
+  });
+
+  test('getExerciseBySlug returns null for an unknown slug', () async {
+    expect(
+      await db.exercisesDao.getExerciseBySlug('not-a-real-exercise'),
+      isNull,
+    );
+  });
+
   test('inserts, updates and deletes a custom exercise', () async {
     final id = await db.exercisesDao.insertExercise(
       ExercisesCompanion.insert(

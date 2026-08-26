@@ -1,4 +1,5 @@
 import 'package:app_academia/core/database/app_database.dart';
+import 'package:app_academia/core/database/daos/workouts_dao.dart';
 import 'package:drift/drift.dart' hide isNull;
 import 'package:flutter_test/flutter_test.dart';
 
@@ -99,4 +100,31 @@ void main() {
     expect(await db.workoutsDao.getWorkoutById(workoutId), isNull);
     expect(await db.workoutsDao.getExercisesForWorkout(workoutId), isEmpty);
   });
+
+  test(
+    'createWorkoutWithExercises builds a workout from resolved entries',
+    () async {
+      final exerciseId = await firstExerciseId();
+
+      final workoutId = await db.workoutsDao.createWorkoutWithExercises(
+        name: 'Push (do catálogo)',
+        entries: [
+          WorkoutExerciseEntry(
+            exerciseId: exerciseId,
+            orderIndex: 0,
+            targetSets: 3,
+            targetReps: 10,
+            targetRestSeconds: 90,
+          ),
+        ],
+      );
+
+      final workout = await db.workoutsDao.getWorkoutById(workoutId);
+      expect(workout!.name, 'Push (do catálogo)');
+      final entries = await db.workoutsDao.getExercisesForWorkout(workoutId);
+      expect(entries, hasLength(1));
+      expect(entries.first.targetSets, 3);
+      expect(entries.first.targetRestSeconds, 90);
+    },
+  );
 }
