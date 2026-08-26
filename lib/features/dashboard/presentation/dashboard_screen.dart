@@ -75,6 +75,11 @@ class DashboardScreen extends ConsumerWidget {
           ),
           const SizedBox(height: 8),
           OutlinedButton(
+            onPressed: () => context.push('/plan-builder'),
+            child: const Text('Montador de plano por IA'),
+          ),
+          const SizedBox(height: 8),
+          OutlinedButton(
             onPressed: () => context.push('/settings'),
             child: const Text('Configurações'),
           ),

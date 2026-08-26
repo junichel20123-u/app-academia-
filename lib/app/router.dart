@@ -1,5 +1,8 @@
 import 'package:go_router/go_router.dart';
 
+import '../features/ai_plan_builder/domain/generated_plan.dart';
+import '../features/ai_plan_builder/presentation/ai_plan_builder_screen.dart';
+import '../features/ai_plan_builder/presentation/plan_preview_screen.dart';
 import '../features/cardio/presentation/cardio_screen.dart';
 import '../features/dashboard/presentation/dashboard_screen.dart';
 import '../features/exercises/presentation/exercise_detail_screen.dart';
@@ -67,6 +70,17 @@ final appRouter = GoRouter(
       builder: (context, state) {
         final slug = state.pathParameters['slug']!;
         return TemplateDetailScreen(slug: slug);
+      },
+    ),
+    GoRoute(
+      path: '/plan-builder',
+      builder: (context, state) => const AiPlanBuilderScreen(),
+    ),
+    GoRoute(
+      path: '/plan-builder/preview',
+      builder: (context, state) {
+        final workouts = state.extra! as List<GeneratedPlanWorkout>;
+        return PlanPreviewScreen(workouts: workouts);
       },
     ),
   ],
