@@ -24,9 +24,19 @@ final videoGenerationProviderProvider = Provider<VideoGenerationProvider>((
 final exerciseVideosRepositoryProvider = Provider<ExerciseVideosRepository>((
   ref,
 ) {
+  final provider = ref.watch(videoGenerationProviderProvider);
+  // The Mock/reference adapters settle almost instantly, so the default
+  // 1s/30s poll/timeout keeps tests and manual MVP runs fast. A real vendor
+  // call typically takes tens of seconds to a couple of minutes, so it gets
+  // a much more patient budget instead.
+  final isMock = provider.providerId == ProviderRegistry.mock.id;
   return ExerciseVideosRepository(
     ref.watch(appDatabaseProvider),
-    ref.watch(videoGenerationProviderProvider),
+    provider,
+    pollInterval: isMock
+        ? const Duration(seconds: 1)
+        : const Duration(seconds: 5),
+    timeout: isMock ? const Duration(seconds: 30) : const Duration(minutes: 5),
   );
 });
 

@@ -1,6 +1,7 @@
 import '../domain/video_generation_provider.dart';
 import 'http_job_based_provider.dart';
 import 'mock_video_generation_provider.dart';
+import 'runway_video_generation_provider.dart';
 
 class VideoProviderDescriptor {
   const VideoProviderDescriptor({
@@ -37,7 +38,14 @@ class ProviderRegistry {
     requiresBaseUrl: true,
   );
 
-  static const List<VideoProviderDescriptor> all = [mock, httpCustom];
+  static const runway = VideoProviderDescriptor(
+    id: 'runway',
+    displayName: 'Runway (Gen-4 Turbo)',
+    requiresApiKey: true,
+    requiresBaseUrl: false,
+  );
+
+  static const List<VideoProviderDescriptor> all = [mock, httpCustom, runway];
 
   static VideoProviderDescriptor descriptorFor(String id) {
     return all.firstWhere((d) => d.id == id, orElse: () => mock);
@@ -46,6 +54,7 @@ class ProviderRegistry {
   static VideoGenerationProvider create(String id, {String? baseUrl}) {
     return switch (id) {
       'http_custom' => HttpJobBasedProvider(baseUrl: baseUrl ?? ''),
+      'runway' => RunwayVideoGenerationProvider(),
       _ => MockVideoGenerationProvider(),
     };
   }
