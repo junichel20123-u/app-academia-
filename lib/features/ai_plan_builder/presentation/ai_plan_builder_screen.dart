@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/database/enums.dart';
 import '../../../core/utils/enum_labels.dart';
 import '../application/ai_plan_builder_providers.dart';
+import 'generation_error_message.dart';
 
 const _experienceLevels = ['beginner', 'intermediate', 'advanced'];
 
@@ -53,7 +54,7 @@ class _AiPlanBuilderScreenState extends ConsumerState<AiPlanBuilderScreen> {
       if (!mounted) return;
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text('Falha ao gerar o plano: $error')));
+      ).showSnackBar(SnackBar(content: Text(describeGenerationError(error))));
     } finally {
       if (mounted) setState(() => _isGenerating = false);
     }
