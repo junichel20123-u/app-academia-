@@ -65,7 +65,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.connection);
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -74,6 +74,12 @@ class AppDatabase extends _$AppDatabase {
       await batch((b) => b.insertAll(exercises, seedExercises));
     },
     onUpgrade: (m, from, to) async {
+      if (from < 3) {
+        await m.addColumn(
+          userSettingsTable,
+          userSettingsTable.themeModePreference,
+        );
+      }
       if (from < 2) {
         // SQLite rejects `ALTER TABLE ... ADD COLUMN ... UNIQUE` directly,
         // so the column is added plain here and uniqueness is enforced by a

@@ -18,3 +18,5 @@ enum WorkoutSessionStatus { inProgress, completed, abandoned }
 enum CardioActivityType { run, bike, walk, swim, other }
 
 enum UnitSystem { metric, imperial }
+
+enum AppThemeMode { dark, light, system }

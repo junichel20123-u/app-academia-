@@ -1,6 +1,7 @@
 import 'package:drift/drift.dart';
 
 import '../../../core/database/app_database.dart';
+import '../../../core/database/enums.dart';
 import '../../../core/storage/secure_storage_service.dart';
 
 class UserSettingsRepository {
@@ -43,5 +44,11 @@ class UserSettingsRepository {
     if (apiKey != null && apiKey.isNotEmpty) {
       await _secureStorage.setApiKey(providerId, apiKey);
     }
+  }
+
+  Future<void> setThemeMode(AppThemeMode mode) {
+    return _db.userSettingsDao.saveSettings(
+      UserSettingsTableCompanion(themeModePreference: Value(mode)),
+    );
   }
 }

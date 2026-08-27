@@ -1,4 +1,5 @@
 import 'package:app_academia/core/database/app_database.dart';
+import 'package:app_academia/core/database/enums.dart';
 import 'package:app_academia/core/providers/database_provider.dart';
 import 'package:app_academia/features/settings/application/user_settings_providers.dart';
 import 'package:app_academia/features/settings/data/user_settings_repository.dart';
@@ -100,6 +101,44 @@ void main() {
     expect(
       find.text('Preencha os campos obrigatórios para este provedor.'),
       findsOneWidget,
+    );
+
+    await tester.pumpWidget(const SizedBox());
+    await tester.pump(const Duration(milliseconds: 50));
+  });
+
+  testWidgets('switching the appearance segment persists the theme mode', (
+    tester,
+  ) async {
+    final db = AppDatabase.forTesting(NativeDatabase.memory());
+    addTearDown(db.close);
+    final repository = UserSettingsRepository(
+      db,
+      secureStorage: FakeSecureStorageService(),
+    );
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          appDatabaseProvider.overrideWithValue(db),
+          userSettingsRepositoryProvider.overrideWithValue(repository),
+        ],
+        child: const MaterialApp(home: SettingsScreen()),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      (await repository.getSettings()).themeModePreference,
+      AppThemeMode.dark,
+    );
+
+    await tester.tap(find.text('Claro'));
+    await tester.pumpAndSettle();
+
+    expect(
+      (await repository.getSettings()).themeModePreference,
+      AppThemeMode.light,
     );
 
     await tester.pumpWidget(const SizedBox());

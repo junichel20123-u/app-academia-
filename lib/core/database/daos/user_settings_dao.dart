@@ -37,5 +37,6 @@ class UserSettingsDao extends DatabaseAccessor<AppDatabase>
     unitSystem: UnitSystem.metric,
     streakFreezeEnabled: false,
     aiPlanBuilderPremiumUnlocked: false,
+    themeModePreference: AppThemeMode.dark,
   );
 }

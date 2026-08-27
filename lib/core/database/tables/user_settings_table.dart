@@ -14,6 +14,8 @@ class UserSettingsTable extends Table {
       boolean().withDefault(const Constant(false))();
   BoolColumn get aiPlanBuilderPremiumUnlocked =>
       boolean().withDefault(const Constant(false))();
+  TextColumn get themeModePreference =>
+      textEnum<AppThemeMode>().withDefault(Constant(AppThemeMode.dark.name))();
 
   @override
   Set<Column> get primaryKey => {id};

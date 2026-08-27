@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/database/enums.dart';
 import '../../video_generation/data/provider_registry.dart';
 import '../application/user_settings_providers.dart';
 
@@ -19,6 +20,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   bool _hasStoredKey = false;
   bool _loaded = false;
   String? _testResultMessage;
+  AppThemeMode _themeMode = AppThemeMode.dark;
 
   @override
   void initState() {
@@ -43,8 +45,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       _providerId = providerId;
       _baseUrlController.text = settings.videoProviderBaseUrl ?? '';
       _hasStoredKey = apiKey != null && apiKey.isNotEmpty;
+      _themeMode = settings.themeModePreference;
       _loaded = true;
     });
+  }
+
+  Future<void> _setThemeMode(AppThemeMode mode) async {
+    setState(() => _themeMode = mode);
+    await ref.read(userSettingsRepositoryProvider).setThemeMode(mode);
   }
 
   void _testConnection() {
@@ -90,6 +98,31 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           : ListView(
               padding: const EdgeInsets.all(16),
               children: [
+                Text(
+                  'Aparência',
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+                const SizedBox(height: 8),
+                SegmentedButton<AppThemeMode>(
+                  segments: const [
+                    ButtonSegment(
+                      value: AppThemeMode.dark,
+                      label: Text('Escuro'),
+                    ),
+                    ButtonSegment(
+                      value: AppThemeMode.light,
+                      label: Text('Claro'),
+                    ),
+                    ButtonSegment(
+                      value: AppThemeMode.system,
+                      label: Text('Automático'),
+                    ),
+                  ],
+                  selected: {_themeMode},
+                  onSelectionChanged: (selection) =>
+                      _setThemeMode(selection.first),
+                ),
+                const SizedBox(height: 24),
                 DropdownButtonFormField<String>(
                   initialValue: _providerId,
                   decoration: const InputDecoration(

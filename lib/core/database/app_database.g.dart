@@ -3959,6 +3959,19 @@ class $UserSettingsTableTable extends UserSettingsTable
         defaultValue: const Constant(false),
       );
   @override
+  late final GeneratedColumnWithTypeConverter<AppThemeMode, String>
+  themeModePreference =
+      GeneratedColumn<String>(
+        'theme_mode_preference',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+        defaultValue: Constant(AppThemeMode.dark.name),
+      ).withConverter<AppThemeMode>(
+        $UserSettingsTableTable.$converterthemeModePreference,
+      );
+  @override
   List<GeneratedColumn> get $columns => [
     id,
     videoProviderId,
@@ -3967,6 +3980,7 @@ class $UserSettingsTableTable extends UserSettingsTable
     unitSystem,
     streakFreezeEnabled,
     aiPlanBuilderPremiumUnlocked,
+    themeModePreference,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -4067,6 +4081,13 @@ class $UserSettingsTableTable extends UserSettingsTable
         DriftSqlType.bool,
         data['${effectivePrefix}ai_plan_builder_premium_unlocked'],
       )!,
+      themeModePreference: $UserSettingsTableTable.$converterthemeModePreference
+          .fromSql(
+            attachedDatabase.typeMapping.read(
+              DriftSqlType.string,
+              data['${effectivePrefix}theme_mode_preference'],
+            )!,
+          ),
     );
   }
 
@@ -4077,6 +4098,10 @@ class $UserSettingsTableTable extends UserSettingsTable
 
   static JsonTypeConverter2<UnitSystem, String, String> $converterunitSystem =
       const EnumNameConverter<UnitSystem>(UnitSystem.values);
+  static JsonTypeConverter2<AppThemeMode, String, String>
+  $converterthemeModePreference = const EnumNameConverter<AppThemeMode>(
+    AppThemeMode.values,
+  );
 }
 
 class UserSettingsTableData extends DataClass
@@ -4088,6 +4113,7 @@ class UserSettingsTableData extends DataClass
   final UnitSystem unitSystem;
   final bool streakFreezeEnabled;
   final bool aiPlanBuilderPremiumUnlocked;
+  final AppThemeMode themeModePreference;
   const UserSettingsTableData({
     required this.id,
     this.videoProviderId,
@@ -4096,6 +4122,7 @@ class UserSettingsTableData extends DataClass
     required this.unitSystem,
     required this.streakFreezeEnabled,
     required this.aiPlanBuilderPremiumUnlocked,
+    required this.themeModePreference,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -4121,6 +4148,13 @@ class UserSettingsTableData extends DataClass
     map['ai_plan_builder_premium_unlocked'] = Variable<bool>(
       aiPlanBuilderPremiumUnlocked,
     );
+    {
+      map['theme_mode_preference'] = Variable<String>(
+        $UserSettingsTableTable.$converterthemeModePreference.toSql(
+          themeModePreference,
+        ),
+      );
+    }
     return map;
   }
 
@@ -4139,6 +4173,7 @@ class UserSettingsTableData extends DataClass
       unitSystem: Value(unitSystem),
       streakFreezeEnabled: Value(streakFreezeEnabled),
       aiPlanBuilderPremiumUnlocked: Value(aiPlanBuilderPremiumUnlocked),
+      themeModePreference: Value(themeModePreference),
     );
   }
 
@@ -4165,6 +4200,8 @@ class UserSettingsTableData extends DataClass
       aiPlanBuilderPremiumUnlocked: serializer.fromJson<bool>(
         json['aiPlanBuilderPremiumUnlocked'],
       ),
+      themeModePreference: $UserSettingsTableTable.$converterthemeModePreference
+          .fromJson(serializer.fromJson<String>(json['themeModePreference'])),
     );
   }
   @override
@@ -4184,6 +4221,11 @@ class UserSettingsTableData extends DataClass
       'aiPlanBuilderPremiumUnlocked': serializer.toJson<bool>(
         aiPlanBuilderPremiumUnlocked,
       ),
+      'themeModePreference': serializer.toJson<String>(
+        $UserSettingsTableTable.$converterthemeModePreference.toJson(
+          themeModePreference,
+        ),
+      ),
     };
   }
 
@@ -4195,6 +4237,7 @@ class UserSettingsTableData extends DataClass
     UnitSystem? unitSystem,
     bool? streakFreezeEnabled,
     bool? aiPlanBuilderPremiumUnlocked,
+    AppThemeMode? themeModePreference,
   }) => UserSettingsTableData(
     id: id ?? this.id,
     videoProviderId: videoProviderId.present
@@ -4210,6 +4253,7 @@ class UserSettingsTableData extends DataClass
     streakFreezeEnabled: streakFreezeEnabled ?? this.streakFreezeEnabled,
     aiPlanBuilderPremiumUnlocked:
         aiPlanBuilderPremiumUnlocked ?? this.aiPlanBuilderPremiumUnlocked,
+    themeModePreference: themeModePreference ?? this.themeModePreference,
   );
   UserSettingsTableData copyWithCompanion(UserSettingsTableCompanion data) {
     return UserSettingsTableData(
@@ -4232,6 +4276,9 @@ class UserSettingsTableData extends DataClass
       aiPlanBuilderPremiumUnlocked: data.aiPlanBuilderPremiumUnlocked.present
           ? data.aiPlanBuilderPremiumUnlocked.value
           : this.aiPlanBuilderPremiumUnlocked,
+      themeModePreference: data.themeModePreference.present
+          ? data.themeModePreference.value
+          : this.themeModePreference,
     );
   }
 
@@ -4244,7 +4291,10 @@ class UserSettingsTableData extends DataClass
           ..write('videoProviderApiKeyRef: $videoProviderApiKeyRef, ')
           ..write('unitSystem: $unitSystem, ')
           ..write('streakFreezeEnabled: $streakFreezeEnabled, ')
-          ..write('aiPlanBuilderPremiumUnlocked: $aiPlanBuilderPremiumUnlocked')
+          ..write(
+            'aiPlanBuilderPremiumUnlocked: $aiPlanBuilderPremiumUnlocked, ',
+          )
+          ..write('themeModePreference: $themeModePreference')
           ..write(')'))
         .toString();
   }
@@ -4258,6 +4308,7 @@ class UserSettingsTableData extends DataClass
     unitSystem,
     streakFreezeEnabled,
     aiPlanBuilderPremiumUnlocked,
+    themeModePreference,
   );
   @override
   bool operator ==(Object other) =>
@@ -4270,7 +4321,8 @@ class UserSettingsTableData extends DataClass
           other.unitSystem == this.unitSystem &&
           other.streakFreezeEnabled == this.streakFreezeEnabled &&
           other.aiPlanBuilderPremiumUnlocked ==
-              this.aiPlanBuilderPremiumUnlocked);
+              this.aiPlanBuilderPremiumUnlocked &&
+          other.themeModePreference == this.themeModePreference);
 }
 
 class UserSettingsTableCompanion
@@ -4282,6 +4334,7 @@ class UserSettingsTableCompanion
   final Value<UnitSystem> unitSystem;
   final Value<bool> streakFreezeEnabled;
   final Value<bool> aiPlanBuilderPremiumUnlocked;
+  final Value<AppThemeMode> themeModePreference;
   const UserSettingsTableCompanion({
     this.id = const Value.absent(),
     this.videoProviderId = const Value.absent(),
@@ -4290,6 +4343,7 @@ class UserSettingsTableCompanion
     this.unitSystem = const Value.absent(),
     this.streakFreezeEnabled = const Value.absent(),
     this.aiPlanBuilderPremiumUnlocked = const Value.absent(),
+    this.themeModePreference = const Value.absent(),
   });
   UserSettingsTableCompanion.insert({
     this.id = const Value.absent(),
@@ -4299,6 +4353,7 @@ class UserSettingsTableCompanion
     this.unitSystem = const Value.absent(),
     this.streakFreezeEnabled = const Value.absent(),
     this.aiPlanBuilderPremiumUnlocked = const Value.absent(),
+    this.themeModePreference = const Value.absent(),
   });
   static Insertable<UserSettingsTableData> custom({
     Expression<int>? id,
@@ -4308,6 +4363,7 @@ class UserSettingsTableCompanion
     Expression<String>? unitSystem,
     Expression<bool>? streakFreezeEnabled,
     Expression<bool>? aiPlanBuilderPremiumUnlocked,
+    Expression<String>? themeModePreference,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -4321,6 +4377,8 @@ class UserSettingsTableCompanion
         'streak_freeze_enabled': streakFreezeEnabled,
       if (aiPlanBuilderPremiumUnlocked != null)
         'ai_plan_builder_premium_unlocked': aiPlanBuilderPremiumUnlocked,
+      if (themeModePreference != null)
+        'theme_mode_preference': themeModePreference,
     });
   }
 
@@ -4332,6 +4390,7 @@ class UserSettingsTableCompanion
     Value<UnitSystem>? unitSystem,
     Value<bool>? streakFreezeEnabled,
     Value<bool>? aiPlanBuilderPremiumUnlocked,
+    Value<AppThemeMode>? themeModePreference,
   }) {
     return UserSettingsTableCompanion(
       id: id ?? this.id,
@@ -4343,6 +4402,7 @@ class UserSettingsTableCompanion
       streakFreezeEnabled: streakFreezeEnabled ?? this.streakFreezeEnabled,
       aiPlanBuilderPremiumUnlocked:
           aiPlanBuilderPremiumUnlocked ?? this.aiPlanBuilderPremiumUnlocked,
+      themeModePreference: themeModePreference ?? this.themeModePreference,
     );
   }
 
@@ -4378,6 +4438,13 @@ class UserSettingsTableCompanion
         aiPlanBuilderPremiumUnlocked.value,
       );
     }
+    if (themeModePreference.present) {
+      map['theme_mode_preference'] = Variable<String>(
+        $UserSettingsTableTable.$converterthemeModePreference.toSql(
+          themeModePreference.value,
+        ),
+      );
+    }
     return map;
   }
 
@@ -4390,7 +4457,10 @@ class UserSettingsTableCompanion
           ..write('videoProviderApiKeyRef: $videoProviderApiKeyRef, ')
           ..write('unitSystem: $unitSystem, ')
           ..write('streakFreezeEnabled: $streakFreezeEnabled, ')
-          ..write('aiPlanBuilderPremiumUnlocked: $aiPlanBuilderPremiumUnlocked')
+          ..write(
+            'aiPlanBuilderPremiumUnlocked: $aiPlanBuilderPremiumUnlocked, ',
+          )
+          ..write('themeModePreference: $themeModePreference')
           ..write(')'))
         .toString();
   }
@@ -8364,6 +8434,7 @@ typedef $$UserSettingsTableTableCreateCompanionBuilder =
       Value<UnitSystem> unitSystem,
       Value<bool> streakFreezeEnabled,
       Value<bool> aiPlanBuilderPremiumUnlocked,
+      Value<AppThemeMode> themeModePreference,
     });
 typedef $$UserSettingsTableTableUpdateCompanionBuilder =
     UserSettingsTableCompanion Function({
@@ -8374,6 +8445,7 @@ typedef $$UserSettingsTableTableUpdateCompanionBuilder =
       Value<UnitSystem> unitSystem,
       Value<bool> streakFreezeEnabled,
       Value<bool> aiPlanBuilderPremiumUnlocked,
+      Value<AppThemeMode> themeModePreference,
     });
 
 class $$UserSettingsTableTableFilterComposer
@@ -8420,6 +8492,12 @@ class $$UserSettingsTableTableFilterComposer
     column: $table.aiPlanBuilderPremiumUnlocked,
     builder: (column) => ColumnFilters(column),
   );
+
+  ColumnWithTypeConverterFilters<AppThemeMode, AppThemeMode, String>
+  get themeModePreference => $composableBuilder(
+    column: $table.themeModePreference,
+    builder: (column) => ColumnWithTypeConverterFilters(column),
+  );
 }
 
 class $$UserSettingsTableTableOrderingComposer
@@ -8465,6 +8543,11 @@ class $$UserSettingsTableTableOrderingComposer
     column: $table.aiPlanBuilderPremiumUnlocked,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<String> get themeModePreference => $composableBuilder(
+    column: $table.themeModePreference,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$UserSettingsTableTableAnnotationComposer
@@ -8507,6 +8590,12 @@ class $$UserSettingsTableTableAnnotationComposer
 
   GeneratedColumn<bool> get aiPlanBuilderPremiumUnlocked => $composableBuilder(
     column: $table.aiPlanBuilderPremiumUnlocked,
+    builder: (column) => column,
+  );
+
+  GeneratedColumnWithTypeConverter<AppThemeMode, String>
+  get themeModePreference => $composableBuilder(
+    column: $table.themeModePreference,
     builder: (column) => column,
   );
 }
@@ -8558,6 +8647,7 @@ class $$UserSettingsTableTableTableManager
                 Value<UnitSystem> unitSystem = const Value.absent(),
                 Value<bool> streakFreezeEnabled = const Value.absent(),
                 Value<bool> aiPlanBuilderPremiumUnlocked = const Value.absent(),
+                Value<AppThemeMode> themeModePreference = const Value.absent(),
               }) => UserSettingsTableCompanion(
                 id: id,
                 videoProviderId: videoProviderId,
@@ -8566,6 +8656,7 @@ class $$UserSettingsTableTableTableManager
                 unitSystem: unitSystem,
                 streakFreezeEnabled: streakFreezeEnabled,
                 aiPlanBuilderPremiumUnlocked: aiPlanBuilderPremiumUnlocked,
+                themeModePreference: themeModePreference,
               ),
           createCompanionCallback:
               ({
@@ -8576,6 +8667,7 @@ class $$UserSettingsTableTableTableManager
                 Value<UnitSystem> unitSystem = const Value.absent(),
                 Value<bool> streakFreezeEnabled = const Value.absent(),
                 Value<bool> aiPlanBuilderPremiumUnlocked = const Value.absent(),
+                Value<AppThemeMode> themeModePreference = const Value.absent(),
               }) => UserSettingsTableCompanion.insert(
                 id: id,
                 videoProviderId: videoProviderId,
@@ -8584,6 +8676,7 @@ class $$UserSettingsTableTableTableManager
                 unitSystem: unitSystem,
                 streakFreezeEnabled: streakFreezeEnabled,
                 aiPlanBuilderPremiumUnlocked: aiPlanBuilderPremiumUnlocked,
+                themeModePreference: themeModePreference,
               ),
           withReferenceMapper: (p0) => p0
               .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
