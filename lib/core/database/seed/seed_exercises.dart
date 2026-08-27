@@ -85,11 +85,28 @@ final List<ExercisesCompanion> exercisesAddedInSchemaV5 = [
   _e('Coice no cabo (glúteos)', MuscleGroup.legs, Equipment.cable),
 ];
 
+/// Added in schema v6 — more cable/pulley movements requested by name after
+/// testing v5 (hip ab/adduction, hip flexion, cable squat, cable
+/// stiff-leg deadlift, woodchopper, side plank with cable row). Note
+/// "Abdominal na polia alta (Crunch)" was also requested but already exists
+/// in [exercisesAddedInSchemaV5] under that same name — not duplicated
+/// here. Exported for the same reason as [exercisesAddedInSchemaV4].
+final List<ExercisesCompanion> exercisesAddedInSchemaV6 = [
+  _e('Abdução de quadril na polia', MuscleGroup.legs, Equipment.cable),
+  _e('Adução de quadril na polia', MuscleGroup.legs, Equipment.cable),
+  _e('Flexão de quadril na polia', MuscleGroup.legs, Equipment.cable),
+  _e('Agachamento na polia', MuscleGroup.legs, Equipment.cable),
+  _e('Stiff na polia', MuscleGroup.legs, Equipment.cable),
+  _e('Woodchopper na polia', MuscleGroup.core, Equipment.cable),
+  _e('Prancha lateral com puxada na polia', MuscleGroup.core, Equipment.cable),
+];
+
 /// Starter exercise library seeded into an empty database on first launch.
 final List<ExercisesCompanion> seedExercises = [
   ..._v1Exercises,
   ...exercisesAddedInSchemaV4,
   ...exercisesAddedInSchemaV5,
+  ...exercisesAddedInSchemaV6,
 ];
 
 ExercisesCompanion _e(

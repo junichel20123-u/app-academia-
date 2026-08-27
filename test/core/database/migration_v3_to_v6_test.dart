@@ -7,9 +7,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:sqlite3/sqlite3.dart' as sqlite3;
 
 /// Hand-writes a v3-shaped database on disk (the schema before the M22
-/// exercise-library expansion), then opens it with the current, v5-aware
+/// exercise-library expansion), then opens it with the current, v6-aware
 /// `AppDatabase` — since `AppDatabase` always migrates to its current
-/// schemaVersion, this exercises both the v4 and v5 `onUpgrade` branches in
+/// schemaVersion, this exercises the v4, v5, and v6 `onUpgrade` branches in
 /// one call. Existing installs should gain the new machine/cardio/cable
 /// exercises without losing their existing rows (seeded, custom, or one
 /// that happens to already have a colliding slug).
@@ -26,7 +26,7 @@ void main() {
     await tempDir.delete(recursive: true);
   });
 
-  test('onUpgrade adds the v4/v5 exercises without duplicating or '
+  test('onUpgrade adds the v4/v5/v6 exercises without duplicating or '
       'overwriting existing rows', () async {
     final raw = sqlite3.sqlite3.open(dbFile.path);
     raw.execute('''
@@ -89,10 +89,15 @@ void main() {
     final db = AppDatabase.forTesting(NativeDatabase(dbFile));
     final exercises = await db.exercisesDao.getAllExercises();
 
-    // 3 pre-existing rows + all v4/v5 additions except the one that collided.
+    // 3 pre-existing rows + all v4/v5/v6 additions except the one that
+    // collided.
     expect(
       exercises.length,
-      3 + exercisesAddedInSchemaV4.length + exercisesAddedInSchemaV5.length - 1,
+      3 +
+          exercisesAddedInSchemaV4.length +
+          exercisesAddedInSchemaV5.length +
+          exercisesAddedInSchemaV6.length -
+          1,
     );
 
     // Pre-existing rows preserved as-is.
@@ -107,10 +112,11 @@ void main() {
     expect(collided, hasLength(1));
     expect(collided.single.name, 'Supino máquina (antigo)');
 
-    // Every other v4/v5 exercise made it in.
+    // Every other v4/v5/v6 exercise made it in.
     for (final added in [
       ...exercisesAddedInSchemaV4,
       ...exercisesAddedInSchemaV5,
+      ...exercisesAddedInSchemaV6,
     ]) {
       if (added.slug.value == 'supino-maquina') continue;
       expect(
