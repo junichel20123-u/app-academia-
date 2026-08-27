@@ -101,12 +101,33 @@ final List<ExercisesCompanion> exercisesAddedInSchemaV6 = [
   _e('Prancha lateral com puxada na polia', MuscleGroup.core, Equipment.cable),
 ];
 
+/// Added in schema v7 — machine-equipment gaps reported by name after
+/// testing v6: hip thrust machine, seated calf raise (v4 only had the
+/// standing variant), an assisted pull-up/dip machine (Graviton), and a
+/// decline-bench sit-up station. Several other named machines (leg press,
+/// leg extension/curl, hip ab/adductor, hack squat, chest press, peck deck,
+/// lat pulldown, seated/low row, shoulder press, Scott bench, triceps
+/// machine/pulley, ab crunch machine) already exist from v1/v4/v5 under
+/// equivalent names — not duplicated here. Exported for the same reason as
+/// [exercisesAddedInSchemaV4].
+final List<ExercisesCompanion> exercisesAddedInSchemaV7 = [
+  _e('Elevação pélvica na máquina', MuscleGroup.legs, Equipment.machine),
+  _e('Panturrilha sentada na máquina', MuscleGroup.legs, Equipment.machine),
+  _e(
+    'Graviton (barra fixa/paralelas assistidas)',
+    MuscleGroup.fullBody,
+    Equipment.machine,
+  ),
+  _e('Abdominal no banco declinado', MuscleGroup.core, Equipment.bodyweight),
+];
+
 /// Starter exercise library seeded into an empty database on first launch.
 final List<ExercisesCompanion> seedExercises = [
   ..._v1Exercises,
   ...exercisesAddedInSchemaV4,
   ...exercisesAddedInSchemaV5,
   ...exercisesAddedInSchemaV6,
+  ...exercisesAddedInSchemaV7,
 ];
 
 ExercisesCompanion _e(

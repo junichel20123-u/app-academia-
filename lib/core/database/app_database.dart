@@ -65,7 +65,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.connection);
 
   @override
-  int get schemaVersion => 6;
+  int get schemaVersion => 7;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -78,12 +78,12 @@ class AppDatabase extends _$AppDatabase {
       // reads anything the other writes), so a database that jumps straight
       // from v1 to v3 in one open — skipping v2 entirely, e.g. an old
       // cached APK reinstalled after a gap — would run either order safely.
-      // The v4/v5/v6 branches are the exception: they insert/query by
+      // The v4/v5/v6/v7 branches are the exception: they insert/query by
       // `exercises.slug`, which only exists once the v2 branch has run, so
       // all branches are kept in chronological (version) order — a from=1
-      // jump straight to v6 runs v2's branch first within this same call,
-      // so the slug column (and its unique index, for v4/v5/v6's
-      // `insertOrIgnore`) always exists by the time v4/v5/v6's writes run.
+      // jump straight to v7 runs v2's branch first within this same call,
+      // so the slug column (and its unique index, for v4/v5/v6/v7's
+      // `insertOrIgnore`) always exists by the time those writes run.
       if (from < 2) {
         // SQLite rejects `ALTER TABLE ... ADD COLUMN ... UNIQUE` directly,
         // so the column is added plain here and uniqueness is enforced by a
@@ -137,6 +137,11 @@ class AppDatabase extends _$AppDatabase {
       }
       if (from < 6) {
         for (final entry in exercisesAddedInSchemaV6) {
+          await into(exercises).insert(entry, mode: InsertMode.insertOrIgnore);
+        }
+      }
+      if (from < 7) {
+        for (final entry in exercisesAddedInSchemaV7) {
           await into(exercises).insert(entry, mode: InsertMode.insertOrIgnore);
         }
       }
