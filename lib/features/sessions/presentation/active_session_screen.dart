@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../app/theme/app_colors.dart';
+import '../../../app/theme/app_spacing.dart';
 import '../../../core/database/app_database.dart';
 import '../../../core/database/enums.dart';
+import '../../../core/widgets/empty_state.dart';
 import '../../exercises/application/exercises_providers.dart';
 import '../../exercises/presentation/widgets/exercise_picker_sheet.dart';
 import '../../workouts/application/workouts_providers.dart';
@@ -84,8 +88,9 @@ class ActiveSessionScreen extends ConsumerWidget {
               ),
               Expanded(
                 child: groups.isEmpty
-                    ? const Center(
-                        child: Text('Nenhum exercício registrado ainda.'),
+                    ? const EmptyState(
+                        icon: Icons.fitness_center,
+                        title: 'Nenhum exercício registrado ainda.',
                       )
                     : ListView(
                         padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -132,12 +137,7 @@ class ActiveSessionScreen extends ConsumerWidget {
                       const SizedBox(width: 8),
                       Expanded(
                         child: FilledButton(
-                          onPressed: () async {
-                            await ref
-                                .read(sessionsRepositoryProvider)
-                                .completeSession(sessionId);
-                            if (context.mounted) Navigator.of(context).pop();
-                          },
+                          onPressed: () => _finishSession(context, ref),
                           child: const Text('Finalizar'),
                         ),
                       ),
@@ -215,6 +215,73 @@ class ActiveSessionScreen extends ConsumerWidget {
       exerciseId: exercise.id,
       workoutExerciseId: null,
       setNumber: 1,
+    );
+  }
+
+  Future<void> _finishSession(BuildContext context, WidgetRef ref) async {
+    HapticFeedback.heavyImpact();
+    await ref.read(sessionsRepositoryProvider).completeSession(sessionId);
+    if (!context.mounted) return;
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      barrierColor: Colors.black54,
+      builder: (_) => const _CompletionCelebration(),
+    );
+    if (context.mounted) Navigator.of(context).pop();
+  }
+}
+
+/// Brief, finite celebration shown after finishing a session — a scaling
+/// check icon that dismisses itself once its own animation completes.
+/// Deliberately driven entirely by one `Ticker`-backed [AnimationController]
+/// rather than a real-clock `Future.delayed`/`Timer`: only Ticker-driven
+/// animations advance in step with `WidgetTester.pumpAndSettle()` — a plain
+/// wall-clock timer doesn't reliably fire within it and can leave a pending
+/// Timer straddling into the next test (this codebase has hit that class of
+/// bug before, see the drift-debounce-timer comments in the session/workout
+/// flow tests).
+class _CompletionCelebration extends StatefulWidget {
+  const _CompletionCelebration();
+
+  @override
+  State<_CompletionCelebration> createState() => _CompletionCelebrationState();
+}
+
+class _CompletionCelebrationState extends State<_CompletionCelebration>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  late final Animation<double> _scale;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: AppDurations.celebratory,
+    );
+    _scale = CurvedAnimation(parent: _controller, curve: Curves.elasticOut);
+    _controller.addStatusListener((status) {
+      if (status == AnimationStatus.completed && mounted) {
+        Navigator.of(context).pop();
+      }
+    });
+    _controller.forward();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: ScaleTransition(
+        scale: _scale,
+        child: const Icon(Icons.check_circle, color: AppColors.volt, size: 96),
+      ),
     );
   }
 }
