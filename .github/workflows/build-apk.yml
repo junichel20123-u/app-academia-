@@ -1,0 +1,39 @@
+name: Build APK
+
+# Manual only — this is for sideloading a test build on a personal device,
+# not a release pipeline. The local sandbox this project is developed from
+# can't reach Android's SDK download servers, so the APK is built here
+# instead, where a full toolchain is available.
+on:
+  workflow_dispatch: {}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+
+      - run: flutter pub get
+
+      # SUPABASE_URL/SUPABASE_ANON_KEY are not secrets — the anon key is
+      # public by design, protected by Postgres RLS (see supabase/migrations
+      # and the app's plan notes) — so they're safe to commit here rather
+      # than needing repo secrets.
+      - run: |
+          flutter build apk --release \
+            --dart-define=SUPABASE_URL=https://pqpgaijfkveigmxtoapx.supabase.co \
+            --dart-define=SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBxcGdhaWpma3ZlaWdteHRvYXB4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc3MTE0NDksImV4cCI6MjEwMzI4NzQ0OX0.yq3uPhnH5OL9-NQJ-wCucOqmYotVYlO6jXY1J4hUfkE
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: app-academia-release-apk
+          path: build/app/outputs/flutter-apk/app-release.apk
