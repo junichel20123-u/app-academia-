@@ -4,8 +4,10 @@ import '../../utils/slugify.dart';
 import '../app_database.dart';
 import '../enums.dart';
 
-/// Starter exercise library seeded into an empty database on first launch.
-final List<ExercisesCompanion> seedExercises = [
+/// Original starter library (schema v1). Kept as its own list so the v4
+/// migration below can reference exactly what was added later without
+/// redeclaring it.
+final List<ExercisesCompanion> _v1Exercises = [
   _e('Supino reto com barra', MuscleGroup.chest, Equipment.barbell),
   _e('Supino inclinado com halteres', MuscleGroup.chest, Equipment.dumbbell),
   _e('Crucifixo no cabo', MuscleGroup.chest, Equipment.cable),
@@ -38,6 +40,36 @@ final List<ExercisesCompanion> seedExercises = [
   _e('Burpee', MuscleGroup.fullBody, Equipment.bodyweight),
   _e('Kettlebell swing', MuscleGroup.fullBody, Equipment.kettlebell),
   _e('Corrida na esteira', MuscleGroup.cardio, Equipment.machine),
+];
+
+/// Added in schema v4 — fills the gap reported after testing: too few
+/// machine-equipment options outside legs/back, and only one cardio entry.
+/// Exported (not private) so the v4 `onUpgrade` migration in
+/// `app_database.dart` can insert exactly this list into existing installs
+/// without redeclaring it or re-inserting the v1 exercises.
+final List<ExercisesCompanion> exercisesAddedInSchemaV4 = [
+  _e('Supino máquina', MuscleGroup.chest, Equipment.machine),
+  _e('Peck deck (voador máquina)', MuscleGroup.chest, Equipment.machine),
+  _e('Remada máquina', MuscleGroup.back, Equipment.machine),
+  _e('Puxada supinada na máquina', MuscleGroup.back, Equipment.machine),
+  _e('Cadeira adutora', MuscleGroup.legs, Equipment.machine),
+  _e('Cadeira abdutora', MuscleGroup.legs, Equipment.machine),
+  _e('Panturrilha em pé na máquina', MuscleGroup.legs, Equipment.machine),
+  _e('Agachamento hack na máquina', MuscleGroup.legs, Equipment.machine),
+  _e('Desenvolvimento máquina', MuscleGroup.shoulders, Equipment.machine),
+  _e('Tríceps máquina', MuscleGroup.arms, Equipment.machine),
+  _e('Rosca scott na máquina', MuscleGroup.arms, Equipment.machine),
+  _e('Abdominal máquina', MuscleGroup.core, Equipment.machine),
+  _e('Bicicleta ergométrica', MuscleGroup.cardio, Equipment.machine),
+  _e('Elíptico', MuscleGroup.cardio, Equipment.machine),
+  _e('Remo ergométrico', MuscleGroup.cardio, Equipment.machine),
+  _e('Pular corda', MuscleGroup.cardio, Equipment.other),
+];
+
+/// Starter exercise library seeded into an empty database on first launch.
+final List<ExercisesCompanion> seedExercises = [
+  ..._v1Exercises,
+  ...exercisesAddedInSchemaV4,
 ];
 
 ExercisesCompanion _e(

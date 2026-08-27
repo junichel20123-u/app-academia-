@@ -65,7 +65,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.connection);
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -74,12 +74,16 @@ class AppDatabase extends _$AppDatabase {
       await batch((b) => b.insertAll(exercises, seedExercises));
     },
     onUpgrade: (m, from, to) async {
-      // Both branches below only touch independent columns/tables (neither
+      // The v2 and v3 branches only touch independent columns/tables (neither
       // reads anything the other writes), so a database that jumps straight
       // from v1 to v3 in one open — skipping v2 entirely, e.g. an old
-      // cached APK reinstalled after a gap — safely runs both in whichever
-      // order, but they're kept in chronological (version) order for
-      // readability.
+      // cached APK reinstalled after a gap — would run either order safely.
+      // The v4 branch is the one exception: it relies on the unique index
+      // the v2 branch creates on `exercises.slug` for `insertOrIgnore` to
+      // skip rows this install already has, so all branches are kept in
+      // chronological (version) order — a from=1 jump straight to v4 runs
+      // v2's branch first within this same call, so the index always exists
+      // by the time v4's insert runs.
       if (from < 2) {
         // SQLite rejects `ALTER TABLE ... ADD COLUMN ... UNIQUE` directly,
         // so the column is added plain here and uniqueness is enforced by a
@@ -108,6 +112,14 @@ class AppDatabase extends _$AppDatabase {
           userSettingsTable,
           userSettingsTable.themeModePreference,
         );
+      }
+      if (from < 4) {
+        // insertOrIgnore: safe no-op for a slug this install already has
+        // (e.g. a user who manually created a custom exercise that happens
+        // to collide, or a v1->v4 jump where onCreate never ran).
+        for (final entry in exercisesAddedInSchemaV4) {
+          await into(exercises).insert(entry, mode: InsertMode.insertOrIgnore);
+        }
       }
     },
     beforeOpen: (details) async {

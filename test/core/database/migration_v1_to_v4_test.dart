@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:app_academia/core/database/app_database.dart';
 import 'package:app_academia/core/database/enums.dart';
+import 'package:app_academia/core/database/seed/seed_exercises.dart';
 import 'package:app_academia/core/utils/slugify.dart';
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -9,19 +10,20 @@ import 'package:sqlite3/sqlite3.dart' as sqlite3;
 
 /// Hand-writes a v1-shaped database (same shape as
 /// `migration_v1_to_v2_test.dart`), then opens it directly with the current
-/// v3-aware `AppDatabase` — exercising a jump straight from v1 to v3 in one
-/// `onUpgrade` call, skipping v2 entirely. This is a real (if uncommon)
+/// v4-aware `AppDatabase` — exercising a jump straight from v1 to v4 in one
+/// `onUpgrade` call, skipping v2/v3 entirely. This is a real (if uncommon)
 /// upgrade path: an old cached APK build reinstalled after a gap would never
-/// have passed through an intermediate v2-schema install. Both `onUpgrade`
-/// branches (`from < 2` and `from < 3`) only touch independent
-/// columns/tables, but this test proves that in practice rather than by
-/// code inspection alone.
+/// have passed through the intermediate schema versions. The v2/v3 branches
+/// only touch independent columns/tables and would run in either order; the
+/// v4 branch depends on v2's branch having already created the unique index
+/// on `exercises.slug` (see the comment in `app_database.dart`) — this test
+/// proves the whole chain works end to end rather than by code inspection.
 void main() {
   late Directory tempDir;
   late File dbFile;
 
   setUp(() async {
-    tempDir = await Directory.systemTemp.createTemp('migration_v1_v3_test');
+    tempDir = await Directory.systemTemp.createTemp('migration_v1_v4_test');
     dbFile = File('${tempDir.path}/v1.sqlite');
   });
 
@@ -29,7 +31,7 @@ void main() {
     await tempDir.delete(recursive: true);
   });
 
-  test('onUpgrade from v1 straight to v3 applies both migrations', () async {
+  test('onUpgrade from v1 straight to v4 applies every migration', () async {
     final raw = sqlite3.sqlite3.open(dbFile.path);
     raw.execute('''
       CREATE TABLE exercises (
@@ -39,7 +41,7 @@ void main() {
         equipment TEXT NULL,
         instructions TEXT NULL,
         is_custom INTEGER NOT NULL DEFAULT 0,
-        created_at INTEGER NOT NULL
+        created_at INTEGER NOT NULL DEFAULT (CAST(strftime('%s', CURRENT_TIMESTAMP) AS INTEGER))
       );
       CREATE TABLE user_settings_table (
         id INTEGER NOT NULL DEFAULT 0,
@@ -66,7 +68,10 @@ void main() {
 
     // v2 fields backfilled.
     final exercises = await db.exercisesDao.getAllExercises();
-    expect(exercises.single.slug, slugify('Supino reto com barra'));
+    final original = exercises.singleWhere(
+      (e) => e.name == 'Supino reto com barra',
+    );
+    expect(original.slug, slugify('Supino reto com barra'));
     expect(await db.catalogTemplatesDao.getAllTemplates(), isEmpty);
 
     // v3 field defaulted.
@@ -74,6 +79,13 @@ void main() {
     expect(settings.videoProviderId, 'mock');
     expect(settings.aiPlanBuilderPremiumUnlocked, isFalse);
     expect(settings.themeModePreference, AppThemeMode.dark);
+
+    // v4: the new machine/cardio exercises were added on top of the
+    // pre-existing row.
+    expect(exercises.length, 1 + exercisesAddedInSchemaV4.length);
+    for (final added in exercisesAddedInSchemaV4) {
+      expect(exercises.where((e) => e.slug == added.slug.value), hasLength(1));
+    }
 
     await db.close();
   });
