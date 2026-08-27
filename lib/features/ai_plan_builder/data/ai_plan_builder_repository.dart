@@ -63,7 +63,22 @@ class AiPlanBuilderRepository {
   }) : _supabaseUrl = supabaseUrl,
        // ignore: prefer_initializing_formals
        _supabaseAnonKey = supabaseAnonKey,
-       _dio = dio ?? Dio();
+       // A plain `Dio()` has no timeout at all — a hung connection would
+       // leave the "Gerar plano" button spinning forever with no error
+       // ever shown. `receiveTimeout` is set a bit above the Edge
+       // Function's own 30s Gemini timeout (see
+       // gemini_text_generation_provider.ts) so the server's timeout is
+       // normally what fires first; this is the backstop for when it
+       // doesn't (e.g. the response never arrives at all).
+       _dio =
+           dio ??
+           Dio(
+             BaseOptions(
+               connectTimeout: const Duration(seconds: 15),
+               sendTimeout: const Duration(seconds: 15),
+               receiveTimeout: const Duration(seconds: 35),
+             ),
+           );
 
   final AppDatabase _db;
   final String? _supabaseUrl;

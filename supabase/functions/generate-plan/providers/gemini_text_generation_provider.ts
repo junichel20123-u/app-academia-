@@ -26,6 +26,14 @@ const BASE_URL = "https://generativelanguage.googleapis.com/v1beta";
 // exerciseSlug enum and exact day count already guarantee structure).
 const DEFAULT_MODEL = "gemini-3.6-flash";
 const DEFAULT_TIMEOUT_MS = 30_000;
+// Lower than Gemini's default (1.0): this call is constrained structured
+// generation against a closed exercise list and numeric bounds (see
+// plan.ts's buildPlanSchema), not open-ended creative writing — a lower
+// temperature makes the model follow SYSTEM_PROMPT's concrete rules (no
+// repeated exercise per day, sane sets/reps ranges) more consistently,
+// trading away variety it doesn't need for a slightly more predictable
+// plan run to run.
+const DEFAULT_TEMPERATURE = 0.4;
 
 /**
  * Maps a REST error (an HTTP status code, from either a non-OK response or
@@ -80,6 +88,7 @@ export class GeminiTextGenerationProvider implements TextGenerationProvider {
             generationConfig: {
               responseMimeType: "application/json",
               responseJsonSchema: request.jsonSchema,
+              temperature: DEFAULT_TEMPERATURE,
             },
           }),
           signal: controller.signal,

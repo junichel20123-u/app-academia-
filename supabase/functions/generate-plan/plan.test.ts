@@ -144,6 +144,162 @@ Deno.test("buildPlanSchema rejects an exerciseSlug outside the closed list", () 
   assert(!result.success);
 });
 
+Deno.test("buildPlanSchema rejects a repeated exerciseSlug within the same workout", () => {
+  const schema = buildPlanSchema(1, ["supino-reto-com-barra", "agachamento-livre"]);
+  const result = schema.safeParse({
+    workouts: [
+      {
+        name: "Push",
+        exercises: [
+          {
+            exerciseSlug: "supino-reto-com-barra",
+            targetSets: 3,
+            targetReps: 10,
+            targetRestSeconds: 90,
+            notes: null,
+          },
+          {
+            exerciseSlug: "supino-reto-com-barra",
+            targetSets: 3,
+            targetReps: 8,
+            targetRestSeconds: 90,
+            notes: null,
+          },
+        ],
+      },
+    ],
+  });
+  assert(!result.success);
+});
+
+Deno.test("buildPlanSchema accepts the same exerciseSlug reused across different workout days", () => {
+  const schema = buildPlanSchema(2, ["supino-reto-com-barra"]);
+  const result = schema.safeParse({
+    workouts: [
+      {
+        name: "A",
+        exercises: [
+          {
+            exerciseSlug: "supino-reto-com-barra",
+            targetSets: 3,
+            targetReps: 10,
+            targetRestSeconds: 90,
+            notes: null,
+          },
+        ],
+      },
+      {
+        name: "B",
+        exercises: [
+          {
+            exerciseSlug: "supino-reto-com-barra",
+            targetSets: 4,
+            targetReps: 8,
+            targetRestSeconds: 90,
+            notes: null,
+          },
+        ],
+      },
+    ],
+  });
+  assert(result.success);
+});
+
+Deno.test("buildPlanSchema rejects an implausibly high targetSets", () => {
+  const schema = buildPlanSchema(1, ["supino-reto-com-barra"]);
+  const result = schema.safeParse({
+    workouts: [
+      {
+        name: "Push",
+        exercises: [
+          {
+            exerciseSlug: "supino-reto-com-barra",
+            targetSets: 500,
+            targetReps: 10,
+            targetRestSeconds: 90,
+            notes: null,
+          },
+        ],
+      },
+    ],
+  });
+  assert(!result.success);
+});
+
+Deno.test("buildPlanSchema rejects an implausibly high targetReps", () => {
+  const schema = buildPlanSchema(1, ["supino-reto-com-barra"]);
+  const result = schema.safeParse({
+    workouts: [
+      {
+        name: "Push",
+        exercises: [
+          {
+            exerciseSlug: "supino-reto-com-barra",
+            targetSets: 3,
+            targetReps: 500,
+            targetRestSeconds: 90,
+            notes: null,
+          },
+        ],
+      },
+    ],
+  });
+  assert(!result.success);
+});
+
+Deno.test("buildPlanSchema rejects an implausibly short or long targetRestSeconds", () => {
+  const schema = buildPlanSchema(1, ["supino-reto-com-barra"]);
+  const tooShort = schema.safeParse({
+    workouts: [
+      {
+        name: "Push",
+        exercises: [
+          {
+            exerciseSlug: "supino-reto-com-barra",
+            targetSets: 3,
+            targetReps: 10,
+            targetRestSeconds: 1,
+            notes: null,
+          },
+        ],
+      },
+    ],
+  });
+  assert(!tooShort.success);
+
+  const tooLong = schema.safeParse({
+    workouts: [
+      {
+        name: "Push",
+        exercises: [
+          {
+            exerciseSlug: "supino-reto-com-barra",
+            targetSets: 3,
+            targetReps: 10,
+            targetRestSeconds: 6000,
+            notes: null,
+          },
+        ],
+      },
+    ],
+  });
+  assert(!tooLong.success);
+});
+
+Deno.test("buildPlanSchema rejects more than 12 exercises in a single workout", () => {
+  const slug = "supino-reto-com-barra";
+  const schema = buildPlanSchema(1, [slug]);
+  const exercises = Array.from({ length: 13 }, () => ({
+    exerciseSlug: slug,
+    targetSets: 3,
+    targetReps: 10,
+    targetRestSeconds: 90,
+    notes: null,
+  }));
+  const result = schema.safeParse({ workouts: [{ name: "Push", exercises }] });
+  assert(!result.success);
+});
+
 Deno.test("buildUserPrompt includes the goal, days, equipment and every exercise slug", () => {
   const prompt = buildUserPrompt({
     goal: "emagrecimento",
