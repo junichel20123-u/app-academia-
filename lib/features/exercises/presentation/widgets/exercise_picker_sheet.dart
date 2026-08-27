@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/database/app_database.dart';
 import '../../../../core/database/enums.dart';
 import '../../../../core/utils/enum_labels.dart';
+import '../../../../core/widgets/empty_state.dart';
 import '../../application/exercises_providers.dart';
 
 /// Modal picker: returns the selected [Exercise], or null if dismissed.
@@ -55,8 +56,9 @@ class ExercisePickerSheet extends ConsumerWidget {
                   error: (err, _) => Center(child: Text('Erro: $err')),
                   data: (exercises) {
                     if (exercises.isEmpty) {
-                      return const Center(
-                        child: Text('Nenhum exercício encontrado.'),
+                      return const EmptyState(
+                        icon: Icons.search_off,
+                        title: 'Nenhum exercício encontrado.',
                       );
                     }
                     return ListView.builder(
@@ -64,16 +66,25 @@ class ExercisePickerSheet extends ConsumerWidget {
                       itemCount: exercises.length,
                       itemBuilder: (context, index) {
                         final exercise = exercises[index];
-                        return ListTile(
-                          title: Text(exercise.name),
-                          subtitle: Text(
-                            [
-                              muscleGroupLabel(exercise.muscleGroup),
-                              if (exercise.equipment != null)
-                                equipmentLabel(exercise.equipment!),
-                            ].join(' · '),
+                        return TweenAnimationBuilder<double>(
+                          key: ValueKey(exercise.id),
+                          tween: Tween(begin: 0, end: 1),
+                          duration: const Duration(milliseconds: 250),
+                          curve: Curves.easeOut,
+                          builder: (context, value, child) {
+                            return Opacity(opacity: value, child: child);
+                          },
+                          child: ListTile(
+                            title: Text(exercise.name),
+                            subtitle: Text(
+                              [
+                                muscleGroupLabel(exercise.muscleGroup),
+                                if (exercise.equipment != null)
+                                  equipmentLabel(exercise.equipment!),
+                              ].join(' · '),
+                            ),
+                            onTap: () => Navigator.of(context).pop(exercise),
                           ),
-                          onTap: () => Navigator.of(context).pop(exercise),
                         );
                       },
                     );

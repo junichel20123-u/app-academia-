@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/database/app_database.dart';
+import '../../../core/widgets/empty_state.dart';
 import '../../exercises/application/exercises_providers.dart';
 import '../../exercises/presentation/widgets/exercise_picker_sheet.dart';
 import '../application/workouts_providers.dart';
@@ -132,8 +133,9 @@ class _WorkoutEditScreenState extends ConsumerState<WorkoutEditScreen> {
                     error: (err, _) => Center(child: Text('Erro: $err')),
                     data: (entries) {
                       if (entries.isEmpty) {
-                        return const Center(
-                          child: Text('Nenhum exercício adicionado ainda.'),
+                        return const EmptyState(
+                          icon: Icons.playlist_add,
+                          title: 'Nenhum exercício adicionado ainda.',
                         );
                       }
                       return ReorderableListView.builder(

@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/supabase/supabase_config.dart';
+import '../../../core/widgets/empty_state.dart';
 import '../application/template_catalog_providers.dart';
 
 class TemplateCatalogScreen extends ConsumerStatefulWidget {
@@ -50,8 +51,9 @@ class _TemplateCatalogScreenState extends ConsumerState<TemplateCatalogScreen> {
           error: (err, _) => _scrollableMessage('Erro: $err'),
           data: (templates) {
             if (templates.isEmpty) {
-              return _scrollableMessage(
-                SupabaseConfig.isConfigured
+              return EmptyState(
+                icon: Icons.auto_stories,
+                title: SupabaseConfig.isConfigured
                     ? 'Nenhum modelo de treino disponível ainda.'
                     : 'Catálogo online não configurado nesta build.',
               );
@@ -64,12 +66,21 @@ class _TemplateCatalogScreenState extends ConsumerState<TemplateCatalogScreen> {
                   if (template.goal != null) template.goal!,
                   if (template.difficulty != null) template.difficulty!,
                 ];
-                return ListTile(
-                  title: Text(template.name),
-                  subtitle: subtitleParts.isEmpty
-                      ? null
-                      : Text(subtitleParts.join(' · ')),
-                  onTap: () => context.push('/templates/${template.slug}'),
+                return TweenAnimationBuilder<double>(
+                  key: ValueKey(template.slug),
+                  tween: Tween(begin: 0, end: 1),
+                  duration: const Duration(milliseconds: 250),
+                  curve: Curves.easeOut,
+                  builder: (context, value, child) {
+                    return Opacity(opacity: value, child: child);
+                  },
+                  child: ListTile(
+                    title: Text(template.name),
+                    subtitle: subtitleParts.isEmpty
+                        ? null
+                        : Text(subtitleParts.join(' · ')),
+                    onTap: () => context.push('/templates/${template.slug}'),
+                  ),
                 );
               },
             );

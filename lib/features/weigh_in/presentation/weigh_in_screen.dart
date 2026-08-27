@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/database/app_database.dart';
+import '../../../core/widgets/empty_state.dart';
 import '../application/weigh_in_providers.dart';
 import 'widgets/weigh_in_form.dart';
 import 'widgets/weight_chart.dart';
@@ -100,7 +101,10 @@ class _WeighInScreenState extends ConsumerState<WeighInScreen> {
         error: (err, _) => Center(child: Text('Erro: $err')),
         data: (entries) {
           if (entries.isEmpty) {
-            return const Center(child: Text('Nenhuma pesagem ainda.'));
+            return const EmptyState(
+              icon: Icons.monitor_weight_outlined,
+              title: 'Nenhuma pesagem ainda.',
+            );
           }
 
           final cutoff = _period.days == null
@@ -134,13 +138,22 @@ class _WeighInScreenState extends ConsumerState<WeighInScreen> {
               WeightChart(entries: chartEntries),
               const Divider(),
               for (final entry in entries)
-                ListTile(
-                  title: Text('${entry.weightKg} kg'),
-                  subtitle: Text(_formatDate(entry.occurredAt)),
-                  onTap: () => _editEntry(entry),
-                  trailing: IconButton(
-                    icon: const Icon(Icons.delete_outline),
-                    onPressed: () => _confirmDelete(entry),
+                TweenAnimationBuilder<double>(
+                  key: ValueKey(entry.id),
+                  tween: Tween(begin: 0, end: 1),
+                  duration: const Duration(milliseconds: 250),
+                  curve: Curves.easeOut,
+                  builder: (context, value, child) {
+                    return Opacity(opacity: value, child: child);
+                  },
+                  child: ListTile(
+                    title: Text('${entry.weightKg} kg'),
+                    subtitle: Text(_formatDate(entry.occurredAt)),
+                    onTap: () => _editEntry(entry),
+                    trailing: IconButton(
+                      icon: const Icon(Icons.delete_outline),
+                      onPressed: () => _confirmDelete(entry),
+                    ),
                   ),
                 ),
             ],

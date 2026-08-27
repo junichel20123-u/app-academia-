@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/database/app_database.dart';
 import '../../../core/database/enums.dart';
+import '../../../core/widgets/empty_state.dart';
 import '../application/sessions_providers.dart';
 
 class SessionHistoryScreen extends ConsumerWidget {
@@ -47,7 +48,10 @@ class SessionHistoryScreen extends ConsumerWidget {
         error: (err, _) => Center(child: Text('Erro: $err')),
         data: (sessions) {
           if (sessions.isEmpty) {
-            return const Center(child: Text('Nenhuma sessão concluída ainda.'));
+            return const EmptyState(
+              icon: Icons.history,
+              title: 'Nenhuma sessão concluída ainda.',
+            );
           }
           return ListView.builder(
             itemCount: sessions.length,
@@ -56,20 +60,29 @@ class SessionHistoryScreen extends ConsumerWidget {
               final duration = session.completedAt?.difference(
                 session.startedAt,
               );
-              return ListTile(
-                title: Text(session.name),
-                subtitle: Text(
-                  [
-                    _formatDate(session.startedAt),
-                    if (duration != null) '${duration.inMinutes} min',
-                    if (session.status == WorkoutSessionStatus.abandoned)
-                      'abandonada',
-                  ].join(' · '),
-                ),
-                onTap: () => context.push('/sessions/${session.id}'),
-                trailing: IconButton(
-                  icon: const Icon(Icons.delete_outline),
-                  onPressed: () => _confirmDelete(context, ref, session),
+              return TweenAnimationBuilder<double>(
+                key: ValueKey(session.id),
+                tween: Tween(begin: 0, end: 1),
+                duration: const Duration(milliseconds: 250),
+                curve: Curves.easeOut,
+                builder: (context, value, child) {
+                  return Opacity(opacity: value, child: child);
+                },
+                child: ListTile(
+                  title: Text(session.name),
+                  subtitle: Text(
+                    [
+                      _formatDate(session.startedAt),
+                      if (duration != null) '${duration.inMinutes} min',
+                      if (session.status == WorkoutSessionStatus.abandoned)
+                        'abandonada',
+                    ].join(' · '),
+                  ),
+                  onTap: () => context.push('/sessions/${session.id}'),
+                  trailing: IconButton(
+                    icon: const Icon(Icons.delete_outline),
+                    onPressed: () => _confirmDelete(context, ref, session),
+                  ),
                 ),
               );
             },

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/utils/enum_labels.dart';
+import '../../../core/widgets/empty_state.dart';
 import '../application/exercises_providers.dart';
 
 class ExerciseLibraryScreen extends ConsumerStatefulWidget {
@@ -47,24 +48,34 @@ class _ExerciseLibraryScreenState extends ConsumerState<ExerciseLibraryScreen> {
                           .where((e) => e.name.toLowerCase().contains(query))
                           .toList();
                 if (filtered.isEmpty) {
-                  return const Center(
-                    child: Text('Nenhum exercício encontrado.'),
+                  return const EmptyState(
+                    icon: Icons.search_off,
+                    title: 'Nenhum exercício encontrado.',
                   );
                 }
                 return ListView.builder(
                   itemCount: filtered.length,
                   itemBuilder: (context, index) {
                     final exercise = filtered[index];
-                    return ListTile(
-                      title: Text(exercise.name),
-                      subtitle: Text(
-                        [
-                          muscleGroupLabel(exercise.muscleGroup),
-                          if (exercise.equipment != null)
-                            equipmentLabel(exercise.equipment!),
-                        ].join(' · '),
+                    return TweenAnimationBuilder<double>(
+                      key: ValueKey(exercise.id),
+                      tween: Tween(begin: 0, end: 1),
+                      duration: const Duration(milliseconds: 250),
+                      curve: Curves.easeOut,
+                      builder: (context, value, child) {
+                        return Opacity(opacity: value, child: child);
+                      },
+                      child: ListTile(
+                        title: Text(exercise.name),
+                        subtitle: Text(
+                          [
+                            muscleGroupLabel(exercise.muscleGroup),
+                            if (exercise.equipment != null)
+                              equipmentLabel(exercise.equipment!),
+                          ].join(' · '),
+                        ),
+                        onTap: () => context.push('/exercises/${exercise.id}'),
                       ),
-                      onTap: () => context.push('/exercises/${exercise.id}'),
                     );
                   },
                 );

@@ -38,6 +38,8 @@ class WeightChart extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.only(right: 16, top: 16),
         child: LineChart(
+          duration: const Duration(milliseconds: 400),
+          curve: Curves.easeOutCubic,
           LineChartData(
             minY: minY,
             maxY: maxY,

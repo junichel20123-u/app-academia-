@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../app/theme/app_colors.dart';
+import '../../../app/theme/app_spacing.dart';
 import '../../../core/database/enums.dart';
 import '../../video_generation/data/provider_registry.dart';
 import '../application/user_settings_providers.dart';
@@ -122,6 +124,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   onSelectionChanged: (selection) =>
                       _setThemeMode(selection.first),
                 ),
+                const SizedBox(height: 12),
+                _ThemePreviewSwatch(mode: _themeMode),
                 const SizedBox(height: 24),
                 DropdownButtonFormField<String>(
                   initialValue: _providerId,
@@ -177,6 +181,81 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 FilledButton(onPressed: _save, child: const Text('Salvar')),
               ],
             ),
+    );
+  }
+}
+
+/// Small live preview of the selected appearance option — a swatch card
+/// showing background/surface plus the primary/secondary accents that
+/// option would use, without needing to actually switch `themeModeProvider`
+/// (which would restyle the whole Settings screen underneath it).
+class _ThemePreviewSwatch extends StatelessWidget {
+  const _ThemePreviewSwatch({required this.mode});
+
+  final AppThemeMode mode;
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = switch (mode) {
+      AppThemeMode.dark => true,
+      AppThemeMode.light => false,
+      AppThemeMode.system =>
+        MediaQuery.platformBrightnessOf(context) == Brightness.dark,
+    };
+
+    final background = isDark
+        ? AppColors.darkBackground
+        : AppColors.lightBackground;
+    final surface = isDark ? AppColors.darkSurface : AppColors.lightSurface;
+    final onSurfaceVariant = isDark
+        ? AppColors.darkOnSurfaceVariant
+        : AppColors.lightOnSurfaceVariant;
+    final primary = isDark ? AppColors.volt : AppColors.voltOnLight;
+    final secondary = isDark ? AppColors.ember : AppColors.emberOnLight;
+
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 250),
+      curve: Curves.easeOut,
+      padding: const EdgeInsets.all(AppSpacing.md),
+      decoration: BoxDecoration(
+        color: background,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: onSurfaceVariant.withValues(alpha: 0.3)),
+      ),
+      child: Row(
+        children: [
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 250),
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(color: surface, shape: BoxShape.circle),
+            child: Center(
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _dot(primary),
+                  const SizedBox(width: 4),
+                  _dot(secondary),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(width: AppSpacing.md),
+          Text(
+            'Prévia da aparência',
+            style: TextStyle(color: onSurfaceVariant),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _dot(Color color) {
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 250),
+      width: 10,
+      height: 10,
+      decoration: BoxDecoration(color: color, shape: BoxShape.circle),
     );
   }
 }

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/database/app_database.dart';
 import '../../../core/utils/enum_labels.dart';
+import '../../../core/widgets/empty_state.dart';
 import '../application/cardio_providers.dart';
 import 'widgets/cardio_entry_form.dart';
 
@@ -92,8 +93,9 @@ class CardioScreen extends ConsumerWidget {
         error: (err, _) => Center(child: Text('Erro: $err')),
         data: (entries) {
           if (entries.isEmpty) {
-            return const Center(
-              child: Text('Nenhum registro de cardio ainda.'),
+            return const EmptyState(
+              icon: Icons.directions_run,
+              title: 'Nenhum registro de cardio ainda.',
             );
           }
           return ListView.builder(
@@ -107,13 +109,22 @@ class CardioScreen extends ConsumerWidget {
                 if (entry.calories != null) '${entry.calories} kcal',
                 _formatDate(entry.occurredAt),
               ];
-              return ListTile(
-                title: Text(cardioActivityTypeLabel(entry.activityType)),
-                subtitle: Text(parts.join(' · ')),
-                onTap: () => _editEntry(context, ref, entry),
-                trailing: IconButton(
-                  icon: const Icon(Icons.delete_outline),
-                  onPressed: () => _confirmDelete(context, ref, entry),
+              return TweenAnimationBuilder<double>(
+                key: ValueKey(entry.id),
+                tween: Tween(begin: 0, end: 1),
+                duration: const Duration(milliseconds: 250),
+                curve: Curves.easeOut,
+                builder: (context, value, child) {
+                  return Opacity(opacity: value, child: child);
+                },
+                child: ListTile(
+                  title: Text(cardioActivityTypeLabel(entry.activityType)),
+                  subtitle: Text(parts.join(' · ')),
+                  onTap: () => _editEntry(context, ref, entry),
+                  trailing: IconButton(
+                    icon: const Icon(Icons.delete_outline),
+                    onPressed: () => _confirmDelete(context, ref, entry),
+                  ),
                 ),
               );
             },

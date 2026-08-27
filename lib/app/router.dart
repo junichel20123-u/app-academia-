@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../features/ai_plan_builder/domain/generated_plan.dart';
@@ -16,71 +17,102 @@ import '../features/weigh_in/presentation/weigh_in_screen.dart';
 import '../features/workouts/presentation/workout_edit_screen.dart';
 import '../features/workouts/presentation/workout_library_screen.dart';
 
+/// Shared page transition for every route below: a quick fade + slight
+/// scale-in, applied uniformly instead of go_router's platform default.
+CustomTransitionPage<void> _page(GoRouterState state, Widget child) {
+  return CustomTransitionPage<void>(
+    key: state.pageKey,
+    child: child,
+    transitionDuration: const Duration(milliseconds: 200),
+    transitionsBuilder: (context, animation, secondaryAnimation, child) {
+      final curved = CurvedAnimation(parent: animation, curve: Curves.easeOut);
+      return FadeTransition(
+        opacity: curved,
+        child: ScaleTransition(
+          scale: Tween(begin: 0.98, end: 1.0).animate(curved),
+          child: child,
+        ),
+      );
+    },
+  );
+}
+
 final appRouter = GoRouter(
   routes: [
-    GoRoute(path: '/', builder: (context, state) => const DashboardScreen()),
+    GoRoute(
+      path: '/',
+      pageBuilder: (context, state) => _page(state, const DashboardScreen()),
+    ),
     GoRoute(
       path: '/workouts',
-      builder: (context, state) => const WorkoutLibraryScreen(),
+      pageBuilder: (context, state) =>
+          _page(state, const WorkoutLibraryScreen()),
     ),
     GoRoute(
       path: '/workouts/:id',
-      builder: (context, state) {
+      pageBuilder: (context, state) {
         final id = int.parse(state.pathParameters['id']!);
-        return WorkoutEditScreen(workoutId: id);
+        return _page(state, WorkoutEditScreen(workoutId: id));
       },
     ),
     GoRoute(
       path: '/sessions/:id',
-      builder: (context, state) {
+      pageBuilder: (context, state) {
         final id = int.parse(state.pathParameters['id']!);
-        return ActiveSessionScreen(sessionId: id);
+        return _page(state, ActiveSessionScreen(sessionId: id));
       },
     ),
     GoRoute(
       path: '/history',
-      builder: (context, state) => const SessionHistoryScreen(),
+      pageBuilder: (context, state) =>
+          _page(state, const SessionHistoryScreen()),
     ),
-    GoRoute(path: '/cardio', builder: (context, state) => const CardioScreen()),
+    GoRoute(
+      path: '/cardio',
+      pageBuilder: (context, state) => _page(state, const CardioScreen()),
+    ),
     GoRoute(
       path: '/weigh-in',
-      builder: (context, state) => const WeighInScreen(),
+      pageBuilder: (context, state) => _page(state, const WeighInScreen()),
     ),
     GoRoute(
       path: '/exercises',
-      builder: (context, state) => const ExerciseLibraryScreen(),
+      pageBuilder: (context, state) =>
+          _page(state, const ExerciseLibraryScreen()),
     ),
     GoRoute(
       path: '/exercises/:id',
-      builder: (context, state) {
+      pageBuilder: (context, state) {
         final id = int.parse(state.pathParameters['id']!);
-        return ExerciseDetailScreen(exerciseId: id);
+        return _page(state, ExerciseDetailScreen(exerciseId: id));
       },
     ),
     GoRoute(
       path: '/settings',
-      builder: (context, state) => const SettingsScreen(),
+      pageBuilder: (context, state) => _page(state, const SettingsScreen()),
     ),
     GoRoute(
       path: '/templates',
-      builder: (context, state) => const TemplateCatalogScreen(),
+      pageBuilder: (context, state) =>
+          _page(state, const TemplateCatalogScreen()),
     ),
     GoRoute(
       path: '/templates/:slug',
-      builder: (context, state) {
+      pageBuilder: (context, state) {
         final slug = state.pathParameters['slug']!;
-        return TemplateDetailScreen(slug: slug);
+        return _page(state, TemplateDetailScreen(slug: slug));
       },
     ),
     GoRoute(
       path: '/plan-builder',
-      builder: (context, state) => const AiPlanBuilderScreen(),
+      pageBuilder: (context, state) =>
+          _page(state, const AiPlanBuilderScreen()),
     ),
     GoRoute(
       path: '/plan-builder/preview',
-      builder: (context, state) {
+      pageBuilder: (context, state) {
         final workouts = state.extra! as List<GeneratedPlanWorkout>;
-        return PlanPreviewScreen(workouts: workouts);
+        return _page(state, PlanPreviewScreen(workouts: workouts));
       },
     ),
   ],
