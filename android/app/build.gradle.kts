@@ -6,7 +6,9 @@ plugins {
 
 android {
     namespace = "com.appacademia.app_academia"
-    compileSdk = flutter.compileSdkVersion
+    // flutter_secure_storage requires compileSdk 37+; flutter.compileSdkVersion
+    // (bundled with the Flutter SDK) only resolves to 36.
+    compileSdk = 37
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
