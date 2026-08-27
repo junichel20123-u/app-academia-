@@ -164,6 +164,14 @@ class _AiPlanBuilderScreenState extends ConsumerState<AiPlanBuilderScreen> {
               },
               child: const Text('Desbloquear'),
             ),
+            const SizedBox(height: 8),
+            Text(
+              'Testando o app? Ative em Configurações → Modo de teste.',
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+            ),
           ],
         ),
       ),

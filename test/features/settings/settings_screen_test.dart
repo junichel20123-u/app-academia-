@@ -144,4 +144,46 @@ void main() {
     await tester.pumpWidget(const SizedBox());
     await tester.pump(const Duration(milliseconds: 50));
   });
+
+  testWidgets(
+    'toggling the AI plan builder test-mode switch persists the flag',
+    (tester) async {
+      final db = AppDatabase.forTesting(NativeDatabase.memory());
+      addTearDown(db.close);
+      final repository = UserSettingsRepository(
+        db,
+        secureStorage: FakeSecureStorageService(),
+      );
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            appDatabaseProvider.overrideWithValue(db),
+            userSettingsRepositoryProvider.overrideWithValue(repository),
+          ],
+          child: const MaterialApp(home: SettingsScreen()),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        (await repository.getSettings()).aiPlanBuilderPremiumUnlocked,
+        isFalse,
+      );
+
+      final toggle = find.byType(SwitchListTile);
+      await tester.ensureVisible(toggle);
+      await tester.pumpAndSettle();
+      await tester.tap(toggle);
+      await tester.pumpAndSettle();
+
+      expect(
+        (await repository.getSettings()).aiPlanBuilderPremiumUnlocked,
+        isTrue,
+      );
+
+      await tester.pumpWidget(const SizedBox());
+      await tester.pump(const Duration(milliseconds: 50));
+    },
+  );
 }

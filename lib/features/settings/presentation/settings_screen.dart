@@ -23,6 +23,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   bool _loaded = false;
   String? _testResultMessage;
   AppThemeMode _themeMode = AppThemeMode.dark;
+  bool _aiPlanBuilderUnlocked = false;
 
   @override
   void initState() {
@@ -48,6 +49,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       _baseUrlController.text = settings.videoProviderBaseUrl ?? '';
       _hasStoredKey = apiKey != null && apiKey.isNotEmpty;
       _themeMode = settings.themeModePreference;
+      _aiPlanBuilderUnlocked = settings.aiPlanBuilderPremiumUnlocked;
       _loaded = true;
     });
   }
@@ -55,6 +57,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   Future<void> _setThemeMode(AppThemeMode mode) async {
     setState(() => _themeMode = mode);
     await ref.read(userSettingsRepositoryProvider).setThemeMode(mode);
+  }
+
+  Future<void> _setAiPlanBuilderUnlocked(bool unlocked) async {
+    setState(() => _aiPlanBuilderUnlocked = unlocked);
+    await ref
+        .read(userSettingsRepositoryProvider)
+        .setAiPlanBuilderPremiumUnlocked(unlocked);
   }
 
   void _testConnection() {
@@ -179,6 +188,21 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 ],
                 const SizedBox(height: 24),
                 FilledButton(onPressed: _save, child: const Text('Salvar')),
+                const SizedBox(height: 24),
+                Text(
+                  'Modo de teste',
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+                SwitchListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: const Text('Montador de plano por IA'),
+                  subtitle: const Text(
+                    'Libera o recurso premium sem pagamento — não há '
+                    'cobrança real implementada ainda, isto é só para teste.',
+                  ),
+                  value: _aiPlanBuilderUnlocked,
+                  onChanged: _setAiPlanBuilderUnlocked,
+                ),
               ],
             ),
     );

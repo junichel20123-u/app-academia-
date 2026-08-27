@@ -51,4 +51,14 @@ class UserSettingsRepository {
       UserSettingsTableCompanion(themeModePreference: Value(mode)),
     );
   }
+
+  /// Dev/test-only bypass for the AI plan builder's premium gate — there is
+  /// no real purchase flow yet (see the "Desbloquear" button's "Pagamentos
+  /// em breve" snackbar), so this lets the person testing the app flip the
+  /// same flag a future purchase would set.
+  Future<void> setAiPlanBuilderPremiumUnlocked(bool unlocked) {
+    return _db.userSettingsDao.saveSettings(
+      UserSettingsTableCompanion(aiPlanBuilderPremiumUnlocked: Value(unlocked)),
+    );
+  }
 }
