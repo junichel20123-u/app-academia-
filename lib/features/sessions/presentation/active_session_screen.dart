@@ -99,6 +99,15 @@ class ActiveSessionScreen extends ConsumerWidget {
                             Padding(
                               padding: const EdgeInsets.only(bottom: 8),
                               child: SessionExerciseCard(
+                                // A composite of both ids: workoutExerciseId
+                                // alone would collide (be null) across every
+                                // ad-hoc group, and exerciseId alone would
+                                // collide if the same exercise is both in
+                                // the template and separately logged ad-hoc.
+                                key: ValueKey((
+                                  group.workoutExerciseId,
+                                  group.exerciseId,
+                                )),
                                 group: group,
                                 exerciseName:
                                     exercisesById[group.exerciseId]?.name ??

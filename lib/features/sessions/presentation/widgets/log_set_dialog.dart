@@ -44,6 +44,9 @@ class _LogSetSheetState extends State<_LogSetSheet> {
   late final TextEditingController _repsController;
   late final TextEditingController _notesController;
   int? _rpe;
+  // RPE conventionally includes half-points (7.5, 8.5, ...), a real and
+  // common precision in strength training — not just a discrete 1-10 scale.
+  bool _halfPoint = false;
   bool _showNotes = false;
 
   @override
@@ -57,7 +60,11 @@ class _LogSetSheetState extends State<_LogSetSheet> {
       text: initial?.reps?.toString() ?? '',
     );
     _notesController = TextEditingController(text: initial?.notes ?? '');
-    _rpe = initial?.rpe?.round();
+    final initialRpe = initial?.rpe;
+    if (initialRpe != null) {
+      _rpe = initialRpe.floor();
+      _halfPoint = initialRpe - initialRpe.floor() >= 0.5;
+    }
     _showNotes = initial?.notes?.isNotEmpty ?? false;
   }
 
@@ -89,7 +96,19 @@ class _LogSetSheetState extends State<_LogSetSheet> {
 
   void _selectRpe(int value) {
     HapticFeedback.selectionClick();
-    setState(() => _rpe = _rpe == value ? null : value);
+    setState(() {
+      if (_rpe == value) {
+        _rpe = null;
+        _halfPoint = false;
+      } else {
+        _rpe = value;
+      }
+    });
+  }
+
+  void _toggleHalfPoint() {
+    HapticFeedback.selectionClick();
+    setState(() => _halfPoint = !_halfPoint);
   }
 
   void _save() {
@@ -104,7 +123,7 @@ class _LogSetSheetState extends State<_LogSetSheet> {
       LoggedSetInput(
         weight: weight,
         reps: reps,
-        rpe: _rpe?.toDouble(),
+        rpe: _rpe == null ? null : _rpe! + (_halfPoint ? 0.5 : 0),
         notes: _notesController.text.trim().isEmpty
             ? null
             : _notesController.text.trim(),
@@ -159,6 +178,12 @@ class _LogSetSheetState extends State<_LogSetSheet> {
                     value: value,
                     selected: _rpe == value,
                     onSelected: () => _selectRpe(value),
+                  ),
+                if (_rpe != null)
+                  FilterChip(
+                    label: const Text('+ ½'),
+                    selected: _halfPoint,
+                    onSelected: (_) => _toggleHalfPoint(),
                   ),
               ],
             ),

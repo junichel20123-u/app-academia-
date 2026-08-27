@@ -74,12 +74,12 @@ class AppDatabase extends _$AppDatabase {
       await batch((b) => b.insertAll(exercises, seedExercises));
     },
     onUpgrade: (m, from, to) async {
-      if (from < 3) {
-        await m.addColumn(
-          userSettingsTable,
-          userSettingsTable.themeModePreference,
-        );
-      }
+      // Both branches below only touch independent columns/tables (neither
+      // reads anything the other writes), so a database that jumps straight
+      // from v1 to v3 in one open — skipping v2 entirely, e.g. an old
+      // cached APK reinstalled after a gap — safely runs both in whichever
+      // order, but they're kept in chronological (version) order for
+      // readability.
       if (from < 2) {
         // SQLite rejects `ALTER TABLE ... ADD COLUMN ... UNIQUE` directly,
         // so the column is added plain here and uniqueness is enforced by a
@@ -102,6 +102,12 @@ class AppDatabase extends _$AppDatabase {
           await (update(exercises)..where((t) => t.id.equals(exercise.id)))
               .write(ExercisesCompanion(slug: Value(slugify(exercise.name))));
         }
+      }
+      if (from < 3) {
+        await m.addColumn(
+          userSettingsTable,
+          userSettingsTable.themeModePreference,
+        );
       }
     },
     beforeOpen: (details) async {

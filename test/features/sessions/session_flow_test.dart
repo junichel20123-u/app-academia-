@@ -204,4 +204,45 @@ void main() {
       await tester.pump(const Duration(milliseconds: 50));
     },
   );
+
+  testWidgets('logging a set with a half-point RPE preserves the .5', (
+    tester,
+  ) async {
+    final db = AppDatabase.forTesting(NativeDatabase.memory());
+    addTearDown(db.close);
+    appRouter.go('/');
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [appDatabaseProvider.overrideWithValue(db)],
+        child: MaterialApp.router(routerConfig: appRouter),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Treino livre'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Adicionar exercício'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Supino reto com barra'));
+    await tester.pumpAndSettle();
+
+    // First-set dialog for the newly added exercise.
+    await tester.enterText(
+      find.widgetWithText(TextField, 'Peso em kg (opcional)'),
+      '40',
+    );
+    await tester.tap(find.text('7'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('+ ½'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Salvar'));
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('RPE 7.5'), findsOneWidget);
+
+    await tester.pumpWidget(const SizedBox());
+    await tester.pump(const Duration(milliseconds: 50));
+  });
 }
