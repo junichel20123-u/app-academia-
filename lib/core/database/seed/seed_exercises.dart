@@ -12,7 +12,11 @@ final List<ExercisesCompanion> _v1Exercises = [
   _e('Supino inclinado com halteres', MuscleGroup.chest, Equipment.dumbbell),
   _e('Crucifixo no cabo', MuscleGroup.chest, Equipment.cable),
   _e('Flexão de braço', MuscleGroup.chest, Equipment.bodyweight),
-  _e('Puxada frontal', MuscleGroup.back, Equipment.machine),
+  // Real lat-pulldown machines are always cable/weight-stack based — this
+  // was mislabeled `Equipment.machine` originally; corrected here for new
+  // installs (`onCreate`), and via an `UPDATE` in the v5 migration for
+  // existing ones (see `exercisesAddedInSchemaV5` and `app_database.dart`).
+  _e('Puxada frontal', MuscleGroup.back, Equipment.cable),
   _e('Remada curvada com barra', MuscleGroup.back, Equipment.barbell),
   _e('Remada unilateral com halter', MuscleGroup.back, Equipment.dumbbell),
   _e('Barra fixa', MuscleGroup.back, Equipment.bodyweight),
@@ -66,10 +70,26 @@ final List<ExercisesCompanion> exercisesAddedInSchemaV4 = [
   _e('Pular corda', MuscleGroup.cardio, Equipment.other),
 ];
 
+/// Added in schema v5 — fills the "polia" (cable/pulley) gap reported after
+/// testing: only 2 cable exercises existed (both v1), and the most iconic
+/// cable movement (lat pulldown) was mislabeled `Equipment.machine` — see
+/// the `_v1Exercises` fix above. Exported for the same reason as
+/// [exercisesAddedInSchemaV4].
+final List<ExercisesCompanion> exercisesAddedInSchemaV5 = [
+  _e('Remada baixa na polia', MuscleGroup.back, Equipment.cable),
+  _e('Elevação lateral no cabo', MuscleGroup.shoulders, Equipment.cable),
+  _e('Face pull na polia', MuscleGroup.shoulders, Equipment.cable),
+  _e('Rosca na polia baixa', MuscleGroup.arms, Equipment.cable),
+  _e('Tríceps francês na polia', MuscleGroup.arms, Equipment.cable),
+  _e('Abdominal na polia alta', MuscleGroup.core, Equipment.cable),
+  _e('Coice no cabo (glúteos)', MuscleGroup.legs, Equipment.cable),
+];
+
 /// Starter exercise library seeded into an empty database on first launch.
 final List<ExercisesCompanion> seedExercises = [
   ..._v1Exercises,
   ...exercisesAddedInSchemaV4,
+  ...exercisesAddedInSchemaV5,
 ];
 
 ExercisesCompanion _e(

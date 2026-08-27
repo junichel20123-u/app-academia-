@@ -10,20 +10,21 @@ import 'package:sqlite3/sqlite3.dart' as sqlite3;
 
 /// Hand-writes a v1-shaped database (same shape as
 /// `migration_v1_to_v2_test.dart`), then opens it directly with the current
-/// v4-aware `AppDatabase` — exercising a jump straight from v1 to v4 in one
-/// `onUpgrade` call, skipping v2/v3 entirely. This is a real (if uncommon)
-/// upgrade path: an old cached APK build reinstalled after a gap would never
-/// have passed through the intermediate schema versions. The v2/v3 branches
-/// only touch independent columns/tables and would run in either order; the
-/// v4 branch depends on v2's branch having already created the unique index
-/// on `exercises.slug` (see the comment in `app_database.dart`) — this test
-/// proves the whole chain works end to end rather than by code inspection.
+/// v5-aware `AppDatabase` — exercising a jump straight from v1 to v5 in one
+/// `onUpgrade` call, skipping v2/v3/v4 entirely. This is a real (if
+/// uncommon) upgrade path: an old cached APK build reinstalled after a gap
+/// would never have passed through the intermediate schema versions. The
+/// v2/v3 branches only touch independent columns/tables and would run in
+/// either order; the v4/v5 branches depend on v2's branch having already
+/// created the `exercises.slug` column and its unique index (see the
+/// comment in `app_database.dart`) — this test proves the whole chain works
+/// end to end rather than by code inspection.
 void main() {
   late Directory tempDir;
   late File dbFile;
 
   setUp(() async {
-    tempDir = await Directory.systemTemp.createTemp('migration_v1_v4_test');
+    tempDir = await Directory.systemTemp.createTemp('migration_v1_v5_test');
     dbFile = File('${tempDir.path}/v1.sqlite');
   });
 
@@ -31,7 +32,7 @@ void main() {
     await tempDir.delete(recursive: true);
   });
 
-  test('onUpgrade from v1 straight to v4 applies every migration', () async {
+  test('onUpgrade from v1 straight to v5 applies every migration', () async {
     final raw = sqlite3.sqlite3.open(dbFile.path);
     raw.execute('''
       CREATE TABLE exercises (
@@ -82,8 +83,14 @@ void main() {
 
     // v4: the new machine/cardio exercises were added on top of the
     // pre-existing row.
-    expect(exercises.length, 1 + exercisesAddedInSchemaV4.length);
-    for (final added in exercisesAddedInSchemaV4) {
+    expect(
+      exercises.length,
+      1 + exercisesAddedInSchemaV4.length + exercisesAddedInSchemaV5.length,
+    );
+    for (final added in [
+      ...exercisesAddedInSchemaV4,
+      ...exercisesAddedInSchemaV5,
+    ]) {
       expect(exercises.where((e) => e.slug == added.slug.value), hasLength(1));
     }
 
