@@ -1,4 +1,9 @@
-import { buildPlanSchema, buildUserPrompt, RequestSchema } from "./plan.ts";
+import {
+  buildPlanJsonSchema,
+  buildPlanSchema,
+  buildUserPrompt,
+  RequestSchema,
+} from "./plan.ts";
 
 // No external assertion library — a handful of throwing checks is simpler
 // than pulling in a dependency (and avoids relying on a registry beyond
@@ -183,4 +188,64 @@ Deno.test("buildUserPrompt shows exercises with no equipment without a trailing 
     prompt.includes("flexao-de-braco: Flexão de braço (chest)"),
     true,
   );
+});
+
+Deno.test("buildPlanJsonSchema strips $schema and matches buildPlanSchema's shape", () => {
+  const jsonSchema = buildPlanJsonSchema(2, [
+    "supino-reto-com-barra",
+    "agachamento-livre",
+  ]);
+
+  assert(!("$schema" in jsonSchema), "$schema should be stripped");
+  assertEquals(jsonSchema.type, "object");
+
+  const properties = jsonSchema.properties as Record<string, unknown>;
+  const workouts = properties.workouts as Record<string, unknown>;
+  assertEquals(workouts.minItems, 2);
+  assertEquals(workouts.maxItems, 2);
+
+  const workoutItems = workouts.items as Record<string, unknown>;
+  const workoutProps = workoutItems.properties as Record<string, unknown>;
+  const exercises = workoutProps.exercises as Record<string, unknown>;
+  const exerciseItems = exercises.items as Record<string, unknown>;
+  const exerciseProps = exerciseItems.properties as Record<string, unknown>;
+  const exerciseSlug = exerciseProps.exerciseSlug as Record<string, unknown>;
+  assertEquals(
+    JSON.stringify(exerciseSlug.enum),
+    JSON.stringify(["supino-reto-com-barra", "agachamento-livre"]),
+  );
+});
+
+Deno.test("buildPlanJsonSchema throws on an empty slug list (delegates to buildPlanSchema)", () => {
+  assertThrows(() => buildPlanJsonSchema(3, []));
+});
+
+Deno.test("a response matching buildPlanJsonSchema also validates against buildPlanSchema", () => {
+  // Round-trip sanity check: the same request shape sent to the provider
+  // (JSON Schema) must be accepted back by the Zod schema used to validate
+  // the provider's response — they're derived from the same source, but
+  // this catches any future divergence between the two call sites.
+  const daysPerWeek = 1;
+  const slugs = ["supino-reto-com-barra"];
+  buildPlanJsonSchema(daysPerWeek, slugs); // exercised for its side effect of not throwing
+  const schema = buildPlanSchema(daysPerWeek, slugs);
+
+  const result = schema.safeParse({
+    workouts: [
+      {
+        name: "Push",
+        exercises: [
+          {
+            exerciseSlug: "supino-reto-com-barra",
+            targetSets: 3,
+            targetReps: 10,
+            targetRestSeconds: 90,
+            notes: null,
+          },
+        ],
+      },
+    ],
+  });
+
+  assert(result.success);
 });

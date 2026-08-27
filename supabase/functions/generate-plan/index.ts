@@ -1,23 +1,37 @@
-import Anthropic from "npm:@anthropic-ai/sdk@^0.120.0";
-import { zodOutputFormat } from "npm:@anthropic-ai/sdk@^0.120.0/helpers/zod";
 import {
+  buildPlanJsonSchema,
   buildPlanSchema,
   buildUserPrompt,
   RequestSchema,
   SYSTEM_PROMPT,
 } from "./plan.ts";
-
-// Configurable without a redeploy — see the app's M15/M17 plan notes. Haiku
-// 4.5 (not Sonnet) by default: generation is structurally constrained by
-// planSchema (closed exerciseSlug enum, exact day count), so correctness
-// doesn't depend on a larger model — Haiku is half the price.
-const MODEL = Deno.env.get("ANTHROPIC_MODEL") ?? "claude-haiku-4-5-20251001";
+import { GeminiTextGenerationProvider } from "./providers/gemini_text_generation_provider.ts";
+import { TextGenerationError } from "./providers/text_generation_provider.ts";
 
 function jsonResponse(body: unknown, status: number): Response {
   return new Response(JSON.stringify(body), {
     status,
     headers: { "Content-Type": "application/json" },
   });
+}
+
+// Maps our provider-agnostic error taxonomy to an HTTP status. Kept here
+// (not in the provider) since "what status code a client sees" is a
+// decision for this endpoint, not for any one vendor's SDK.
+function statusForError(error: TextGenerationError): number {
+  switch (error.kind) {
+    case "invalid_request":
+      return 400;
+    case "rate_limited":
+      return 429;
+    case "timeout":
+    case "unavailable":
+      return 503;
+    case "auth":
+    case "invalid_response":
+    case "unknown":
+      return 502;
+  }
 }
 
 Deno.serve(async (req) => {
@@ -35,43 +49,55 @@ Deno.serve(async (req) => {
     );
   }
 
-  const apiKey = Deno.env.get("ANTHROPIC_API_KEY");
+  // GEMINI_API_KEY only ever lives as an Edge Function secret (`supabase
+  // secrets set`) — never in this source, never on the client, never in
+  // the local SQLite database. See the app's M17 plan note (provider
+  // switch from Anthropic to Gemini for free-tier prototyping).
+  const apiKey = Deno.env.get("GEMINI_API_KEY");
   if (!apiKey) {
     return jsonResponse(
-      { error: "Server misconfigured: missing ANTHROPIC_API_KEY" },
+      { error: "Server misconfigured: missing GEMINI_API_KEY" },
       500,
     );
   }
 
-  const client = new Anthropic({ apiKey });
-  const planSchema = buildPlanSchema(
-    input.daysPerWeek,
-    input.exercises.map((e) => e.slug),
+  const slugs = input.exercises.map((e) => e.slug);
+  const planSchema = buildPlanSchema(input.daysPerWeek, slugs);
+  const provider = new GeminiTextGenerationProvider(
+    apiKey,
+    Deno.env.get("GEMINI_MODEL") || undefined,
   );
 
   try {
-    const response = await client.messages.parse({
-      model: MODEL,
-      max_tokens: 4096,
-      system: SYSTEM_PROMPT,
-      messages: [{ role: "user", content: buildUserPrompt(input) }],
-      output_config: { format: zodOutputFormat(planSchema) },
+    const raw = await provider.generateStructured({
+      systemPrompt: SYSTEM_PROMPT,
+      userPrompt: buildUserPrompt(input),
+      jsonSchema: buildPlanJsonSchema(input.daysPerWeek, slugs),
     });
 
     // A plan with any exerciseSlug outside the closed list, or the wrong
-    // number of days, fails Zod validation inside messages.parse() itself
-    // (the enum/length constraints are part of planSchema) — parsed_output
-    // is null in that case. Reject the whole plan rather than salvage a
-    // partial one: unlike the free, curated template catalog (which skips
-    // one bad entry and warns), this is a paid, on-demand generation, so a
-    // structural failure should be visible, not silently patched over.
-    if (!response.parsed_output) {
+    // number of days, fails this Zod validation (the enum/length
+    // constraints are part of planSchema — the same schema already sent to
+    // the provider as the required response shape, so this is a safety net
+    // rather than the primary guarantee). Reject the whole plan rather than
+    // salvage a partial one: unlike the free, curated template catalog
+    // (which skips one bad entry and warns), this is an on-demand
+    // generation, so a structural failure should be visible, not silently
+    // patched over.
+    const parsed = planSchema.safeParse(raw);
+    if (!parsed.success) {
       return jsonResponse({ error: "A IA não retornou um plano válido." }, 502);
     }
 
-    return jsonResponse(response.parsed_output, 200);
+    return jsonResponse(parsed.data, 200);
   } catch (error) {
     console.error("generate-plan error", error);
+    if (error instanceof TextGenerationError) {
+      return jsonResponse(
+        { error: "Falha ao gerar o plano." },
+        statusForError(error),
+      );
+    }
     return jsonResponse({ error: "Falha ao gerar o plano." }, 502);
   }
 });

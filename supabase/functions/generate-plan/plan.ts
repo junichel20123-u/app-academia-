@@ -22,9 +22,14 @@ export type GeneratePlanRequest = z.infer<typeof RequestSchema>;
 /**
  * Builds the structured-output schema for one request: `workouts.length` is
  * locked to the requested `daysPerWeek`, and `exerciseSlug` is a closed enum
- * of exactly the slugs the client sent. Claude cannot reference an exercise
- * outside that list because the enum constrains generation itself, not just
- * a downstream check on the response.
+ * of exactly the slugs the client sent. The model cannot reference an
+ * exercise outside that list because the enum constrains generation itself,
+ * not just a downstream check on the response. Serves double duty: fed to
+ * the provider as the required response shape (via `buildPlanJsonSchema`
+ * below) *and* used again client-side to validate whatever comes back
+ * (`TextGenerationProvider.generateStructured` returns raw `unknown` —
+ * providers don't share a validation story, only a JSON Schema request
+ * shape, so this Zod schema is the one place both sides agree on).
  */
 export function buildPlanSchema(daysPerWeek: number, slugs: string[]) {
   if (slugs.length === 0) {
@@ -52,6 +57,25 @@ export function buildPlanSchema(daysPerWeek: number, slugs: string[]) {
       )
       .length(daysPerWeek),
   });
+}
+
+/**
+ * JSON Schema form of `buildPlanSchema`, for providers (like Gemini's
+ * `responseJsonSchema`) that take a request-time schema instead of a Zod
+ * object. `$schema` is stripped — it's metadata about the schema dialect,
+ * not part of the shape, and some providers reject unrecognized top-level
+ * keywords.
+ */
+export function buildPlanJsonSchema(
+  daysPerWeek: number,
+  slugs: string[],
+): Record<string, unknown> {
+  const jsonSchema = z.toJSONSchema(buildPlanSchema(daysPerWeek, slugs)) as Record<
+    string,
+    unknown
+  >;
+  delete jsonSchema.$schema;
+  return jsonSchema;
 }
 
 /**
