@@ -17,12 +17,14 @@ import {
 // over a heavy SDK for exactly this kind of simple REST endpoint.
 const BASE_URL = "https://generativelanguage.googleapis.com/v1beta";
 
-// Free-tier-eligible as of the M17/Gemini switch (see the app's plan
-// notes): stable (not preview) and a good balance of free daily quota vs
-// quality for generation this constrained (see plan.ts's buildPlanSchema —
-// the closed exerciseSlug enum and exact day count already guarantee
-// structure).
-const DEFAULT_MODEL = "gemini-2.5-flash";
+// `gemini-2.5-flash` (the original M17 choice) was retired for new accounts
+// — a live call now 404s with "This model ... is no longer available to new
+// users. Please update your code to use models/gemini-3.6-flash" straight
+// from Gemini's own API. Free-tier-eligible (no card required) with a
+// similar quota to what 2.5-flash had; still more than enough for
+// generation this constrained (see plan.ts's buildPlanSchema — the closed
+// exerciseSlug enum and exact day count already guarantee structure).
+const DEFAULT_MODEL = "gemini-3.6-flash";
 const DEFAULT_TIMEOUT_MS = 30_000;
 
 /**
