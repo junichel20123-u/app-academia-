@@ -24,7 +24,7 @@ EXERCISES = [
     (
         "remada-curvada-com-barra",
         "Remada curvada com barra",
-        "barbell bent over row",
+        "barbell bent over row back workout gym",
     ),
     (
         "remada-unilateral-com-halter",
@@ -52,7 +52,7 @@ EXERCISES = [
     (
         "desenvolvimento-militar-com-barra",
         "Desenvolvimento militar com barra",
-        "barbell overhead press",
+        "barbell military press shoulder workout gym",
     ),
     ("rosca-direta-com-barra", "Rosca direta com barra", "barbell bicep curl"),
     (
@@ -69,36 +69,36 @@ EXERCISES = [
     ("prancha-abdominal", "Prancha abdominal", "plank exercise"),
     ("abdominal-supra", "Abdominal supra", "crunches exercise"),
     ("elevacao-de-pernas", "Elevação de pernas", "leg raise exercise"),
-    ("burpee", "Burpee", "person doing burpee exercise workout"),
+    ("burpee", "Burpee", "burpee workout fitness training"),
     ("kettlebell-swing", "Kettlebell swing", "kettlebell swing"),
     ("corrida-na-esteira", "Corrida na esteira", "treadmill running"),
     # exercisesAddedInSchemaV4
-    ("supino-maquina", "Supino máquina", "chest press machine"),
+    ("supino-maquina", "Supino máquina", "chest press machine gym workout"),
     (
         "peck-deck-voador-maquina",
         "Peck deck (voador máquina)",
         "pec deck machine fly",
     ),
-    ("remada-maquina", "Remada máquina", "seated row machine"),
+    ("remada-maquina", "Remada máquina", "seated row machine gym workout"),
     (
         "puxada-supinada-na-maquina",
         "Puxada supinada na máquina",
-        "underhand lat pulldown machine",
+        "underhand grip lat pulldown machine gym",
     ),
     (
         "cadeira-adutora",
         "Cadeira adutora",
-        "seated hip adductor machine gym equipment",
+        "inner thigh adductor machine gym",
     ),
     (
         "cadeira-abdutora",
         "Cadeira abdutora",
-        "seated hip abductor machine gym equipment",
+        "outer thigh abductor machine gym",
     ),
     (
         "panturrilha-em-pe-na-maquina",
         "Panturrilha em pé na máquina",
-        "standing calf raise machine",
+        "standing calf raise machine gym workout",
     ),
     (
         "agachamento-hack-na-maquina",
@@ -106,12 +106,12 @@ EXERCISES = [
         "hack squat machine gym equipment",
     ),
     ("desenvolvimento-maquina", "Desenvolvimento máquina", "shoulder press machine"),
-    ("triceps-maquina", "Tríceps máquina", "tricep extension machine"),
+    ("triceps-maquina", "Tríceps máquina", "tricep extension machine gym workout"),
     ("rosca-scott-na-maquina", "Rosca scott na máquina", "preacher curl machine"),
     (
         "abdominal-maquina",
         "Abdominal máquina",
-        "seated abdominal crunch machine gym equipment",
+        "ab crunch machine gym workout",
     ),
     ("bicicleta-ergometrica", "Bicicleta ergométrica", "stationary bike cycling"),
     ("eliptico", "Elíptico", "elliptical machine cardio"),
@@ -119,8 +119,8 @@ EXERCISES = [
     ("pular-corda", "Pular corda", "jump rope exercise"),
     # exercisesAddedInSchemaV5
     ("remada-baixa-na-polia", "Remada baixa na polia", "seated cable row"),
-    ("elevacao-lateral-no-cabo", "Elevação lateral no cabo", "cable lateral raise"),
-    ("face-pull-na-polia", "Face pull na polia", "cable face pull"),
+    ("elevacao-lateral-no-cabo", "Elevação lateral no cabo", "cable lateral raise shoulder exercise gym"),
+    ("face-pull-na-polia", "Face pull na polia", "cable face pull exercise gym rope shoulder"),
     ("rosca-na-polia-baixa", "Rosca na polia baixa", "cable bicep curl"),
     (
         "triceps-frances-na-polia",
@@ -130,36 +130,36 @@ EXERCISES = [
     (
         "abdominal-na-polia-alta",
         "Abdominal na polia alta",
-        "kneeling cable crunch rope gym",
+        "kneeling cable crunch abs workout",
     ),
     ("coice-no-cabo-gluteos", "Coice no cabo (glúteos)", "cable kickback glutes"),
     # exercisesAddedInSchemaV6
     ("abducao-de-quadril-na-polia", "Abdução de quadril na polia", "cable hip abduction"),
-    ("aducao-de-quadril-na-polia", "Adução de quadril na polia", "cable hip adduction"),
-    ("flexao-de-quadril-na-polia", "Flexão de quadril na polia", "cable hip flexion"),
+    ("aducao-de-quadril-na-polia", "Adução de quadril na polia", "cable machine hip adduction exercise gym"),
+    ("flexao-de-quadril-na-polia", "Flexão de quadril na polia", "cable machine hip flexor exercise gym"),
     (
         "agachamento-na-polia",
         "Agachamento na polia",
-        "cable machine squat exercise gym",
+        "cable squat exercise gym workout",
     ),
-    ("stiff-na-polia", "Stiff na polia", "cable stiff leg deadlift"),
-    ("woodchopper-na-polia", "Woodchopper na polia", "cable woodchopper"),
+    ("stiff-na-polia", "Stiff na polia", "cable machine stiff leg deadlift gym"),
+    ("woodchopper-na-polia", "Woodchopper na polia", "cable machine woodchopper exercise gym"),
     (
         "prancha-lateral-com-puxada-na-polia",
         "Prancha lateral com puxada na polia",
-        "side plank cable row",
+        "side plank exercise core workout",
     ),
     # exercisesAddedInSchemaV7
-    ("elevacao-pelvica-na-maquina", "Elevação pélvica na máquina", "hip thrust machine"),
+    ("elevacao-pelvica-na-maquina", "Elevação pélvica na máquina", "hip thrust machine gym equipment glutes"),
     (
         "panturrilha-sentada-na-maquina",
         "Panturrilha sentada na máquina",
-        "seated calf raise machine",
+        "seated calf raise machine gym workout",
     ),
     (
         "graviton-barra-fixa-paralelas-assistidas",
         "Graviton (barra fixa/paralelas assistidas)",
-        "assisted pull up dip machine",
+        "assisted pull up machine gym equipment",
     ),
     ("abdominal-no-banco-declinado", "Abdominal no banco declinado", "decline bench sit up"),
     # exercisesAddedInSchemaV9
@@ -171,6 +171,6 @@ EXERCISES = [
     (
         "agachamento-com-salto",
         "Agachamento com salto",
-        "jump squat exercise plyometric",
+        "jump squat workout fitness training",
     ),
 ]
