@@ -121,6 +121,21 @@ final List<ExercisesCompanion> exercisesAddedInSchemaV7 = [
   _e('Abdominal no banco declinado', MuscleGroup.core, Equipment.bodyweight),
 ];
 
+/// Added in schema v9 — bodyweight cardio-circuit movements needed by the
+/// fixed "Treinos iniciante" workouts (see seed_beginner_workouts.dart):
+/// zero-equipment moves any beginner can do, none of which existed yet
+/// (the only prior bodyweight/cardio entries were `Flexão de braço`,
+/// `Burpee`, `Abdominal supra`, `Elevação de pernas`, `Prancha abdominal`).
+/// Exported for the same reason as [exercisesAddedInSchemaV4].
+final List<ExercisesCompanion> exercisesAddedInSchemaV9 = [
+  _e('Polichinelo', MuscleGroup.cardio, Equipment.bodyweight),
+  _e('Agachamento com peso corporal', MuscleGroup.cardio, Equipment.bodyweight),
+  _e('Afundo alternado', MuscleGroup.cardio, Equipment.bodyweight),
+  _e('Escalador', MuscleGroup.cardio, Equipment.bodyweight),
+  _e('Joelhos altos', MuscleGroup.cardio, Equipment.bodyweight),
+  _e('Agachamento com salto', MuscleGroup.cardio, Equipment.bodyweight),
+];
+
 /// Starter exercise library seeded into an empty database on first launch.
 final List<ExercisesCompanion> seedExercises = [
   ..._v1Exercises,
@@ -128,6 +143,7 @@ final List<ExercisesCompanion> seedExercises = [
   ...exercisesAddedInSchemaV5,
   ...exercisesAddedInSchemaV6,
   ...exercisesAddedInSchemaV7,
+  ...exercisesAddedInSchemaV9,
 ];
 
 ExercisesCompanion _e(

@@ -1,11 +1,13 @@
 import 'package:drift/drift.dart' show Value;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../core/database/app_database.dart';
 import '../../../core/widgets/empty_state.dart';
 import '../../exercises/application/exercises_providers.dart';
 import '../../exercises/presentation/widgets/exercise_picker_sheet.dart';
+import '../../sessions/application/sessions_providers.dart';
 import '../application/workouts_providers.dart';
 import 'widgets/exercise_targets_dialog.dart';
 import 'widgets/workout_exercise_row.dart';
@@ -47,6 +49,13 @@ class _WorkoutEditScreenState extends ConsumerState<WorkoutEditScreen> {
         );
   }
 
+  Future<void> _startSession(Workout workout) async {
+    final id = await ref
+        .read(sessionsRepositoryProvider)
+        .startSessionFromWorkout(workout);
+    if (mounted) context.push('/sessions/$id');
+  }
+
   Future<void> _addExercise(List<WorkoutExercise> existingEntries) async {
     final exercise = await showExercisePickerSheet(context);
     if (exercise == null || !mounted) return;
@@ -80,8 +89,13 @@ class _WorkoutEditScreenState extends ConsumerState<WorkoutEditScreen> {
       }
     });
 
+    final currentWorkout = workoutAsync.value;
+    final title = (currentWorkout != null && currentWorkout.isSystem)
+        ? currentWorkout.name
+        : 'Editar treino';
+
     return Scaffold(
-      appBar: AppBar(title: const Text('Editar treino')),
+      appBar: AppBar(title: Text(title)),
       body: workoutAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (err, _) => Center(child: Text('Erro: $err')),
@@ -98,6 +112,10 @@ class _WorkoutEditScreenState extends ConsumerState<WorkoutEditScreen> {
           final exercisesById = {
             for (final e in exercisesAsync.value ?? []) e.id: e,
           };
+          // A fixed "Treinos iniciante" workout: shown read-only — the
+          // user can duplicate it into their own editable copy, but the
+          // original itself is never edited or deleted directly.
+          final readOnly = workout.isSystem;
 
           return Padding(
             padding: const EdgeInsets.all(16),
@@ -106,6 +124,7 @@ class _WorkoutEditScreenState extends ConsumerState<WorkoutEditScreen> {
               children: [
                 TextField(
                   controller: _nameController,
+                  enabled: !readOnly,
                   decoration: const InputDecoration(
                     labelText: 'Nome do treino',
                   ),
@@ -115,6 +134,7 @@ class _WorkoutEditScreenState extends ConsumerState<WorkoutEditScreen> {
                 const SizedBox(height: 8),
                 TextField(
                   controller: _notesController,
+                  enabled: !readOnly,
                   decoration: const InputDecoration(
                     labelText: 'Notas (opcional)',
                   ),
@@ -138,6 +158,49 @@ class _WorkoutEditScreenState extends ConsumerState<WorkoutEditScreen> {
                           title: 'Nenhum exercício adicionado ainda.',
                         );
                       }
+
+                      Future<void> editTargets(WorkoutExercise entry) async {
+                        final targets = await showExerciseTargetsDialog(
+                          context,
+                          initial: ExerciseTargets(
+                            sets: entry.targetSets,
+                            reps: entry.targetReps,
+                            weight: entry.targetWeight,
+                            restSeconds: entry.targetRestSeconds,
+                          ),
+                        );
+                        if (targets == null) return;
+                        await ref
+                            .read(workoutsRepositoryProvider)
+                            .updateWorkoutExercise(
+                              entry.copyWith(
+                                targetSets: targets.sets,
+                                targetReps: Value(targets.reps),
+                                targetWeight: Value(targets.weight),
+                                targetRestSeconds: Value(targets.restSeconds),
+                              ),
+                            );
+                      }
+
+                      if (readOnly) {
+                        return ListView.builder(
+                          itemCount: entries.length,
+                          itemBuilder: (context, index) {
+                            final entry = entries[index];
+                            return WorkoutExerciseRow(
+                              key: ValueKey(entry.id),
+                              entry: entry,
+                              exerciseName:
+                                  exercisesById[entry.exerciseId]?.name ??
+                                  'Exercício',
+                              readOnly: true,
+                              onEditTargets: () {},
+                              onRemove: () {},
+                            );
+                          },
+                        );
+                      }
+
                       return ReorderableListView.builder(
                         itemCount: entries.length,
                         itemBuilder: (context, index) {
@@ -149,30 +212,7 @@ class _WorkoutEditScreenState extends ConsumerState<WorkoutEditScreen> {
                             key: ValueKey(entry.id),
                             entry: entry,
                             exerciseName: exerciseName,
-                            onEditTargets: () async {
-                              final targets = await showExerciseTargetsDialog(
-                                context,
-                                initial: ExerciseTargets(
-                                  sets: entry.targetSets,
-                                  reps: entry.targetReps,
-                                  weight: entry.targetWeight,
-                                  restSeconds: entry.targetRestSeconds,
-                                ),
-                              );
-                              if (targets == null) return;
-                              await ref
-                                  .read(workoutsRepositoryProvider)
-                                  .updateWorkoutExercise(
-                                    entry.copyWith(
-                                      targetSets: targets.sets,
-                                      targetReps: Value(targets.reps),
-                                      targetWeight: Value(targets.weight),
-                                      targetRestSeconds: Value(
-                                        targets.restSeconds,
-                                      ),
-                                    ),
-                                  );
-                            },
+                            onEditTargets: () => editTargets(entry),
                             onRemove: () => ref
                                 .read(workoutsRepositoryProvider)
                                 .removeWorkoutExercise(entry),
@@ -191,11 +231,19 @@ class _WorkoutEditScreenState extends ConsumerState<WorkoutEditScreen> {
                   ),
                 ),
                 const SizedBox(height: 8),
-                FilledButton.icon(
-                  icon: const Icon(Icons.add),
-                  label: const Text('Adicionar exercício'),
-                  onPressed: () => _addExercise(entriesAsync.value ?? const []),
-                ),
+                if (readOnly)
+                  FilledButton.icon(
+                    icon: const Icon(Icons.play_arrow),
+                    label: const Text('Iniciar'),
+                    onPressed: () => _startSession(workout),
+                  )
+                else
+                  FilledButton.icon(
+                    icon: const Icon(Icons.add),
+                    label: const Text('Adicionar exercício'),
+                    onPressed: () =>
+                        _addExercise(entriesAsync.value ?? const []),
+                  ),
               ],
             ),
           );

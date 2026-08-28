@@ -74,8 +74,15 @@ void main() {
     expect(find.text('Treino de Peito'), findsOneWidget);
     expect(find.text('0 exercício(s)'), findsOneWidget);
 
-    // Duplicate it.
-    await tester.tap(find.byType(PopupMenuButton<String>));
+    // Duplicate it — scoped to this workout's own tile, since the fixed
+    // "Treinos iniciante" workouts also render a PopupMenuButton now.
+    final peitoTile = find.widgetWithText(ListTile, 'Treino de Peito');
+    await tester.tap(
+      find.descendant(
+        of: peitoTile,
+        matching: find.byType(PopupMenuButton<String>),
+      ),
+    );
     await tester.pumpAndSettle();
     await tester.tap(find.text('Duplicar'));
     await tester.pumpAndSettle();

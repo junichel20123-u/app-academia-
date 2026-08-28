@@ -40,7 +40,12 @@ void main() {
       await tester.pageBack();
       await tester.pumpAndSettle();
 
-      await tester.tap(find.byIcon(Icons.play_arrow));
+      // Scoped to this workout's own tile — the fixed "Treinos iniciante"
+      // workouts also render a play button now.
+      final workoutTile = find.widgetWithText(ListTile, 'Treino de Perna');
+      await tester.tap(
+        find.descendant(of: workoutTile, matching: find.byIcon(Icons.play_arrow)),
+      );
       await tester.pumpAndSettle();
 
       expect(find.text('Sessão de treino'), findsOneWidget);

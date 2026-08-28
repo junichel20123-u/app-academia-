@@ -1166,8 +1166,30 @@ class $WorkoutsTable extends Workouts with TableInfo<$WorkoutsTable, Workout> {
     requiredDuringInsert: false,
     defaultValue: currentDateAndTime,
   );
+  static const VerificationMeta _isSystemMeta = const VerificationMeta(
+    'isSystem',
+  );
   @override
-  List<GeneratedColumn> get $columns => [id, name, notes, createdAt, updatedAt];
+  late final GeneratedColumn<bool> isSystem = GeneratedColumn<bool>(
+    'is_system',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_system" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    name,
+    notes,
+    createdAt,
+    updatedAt,
+    isSystem,
+  ];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
@@ -1209,6 +1231,12 @@ class $WorkoutsTable extends Workouts with TableInfo<$WorkoutsTable, Workout> {
         updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
       );
     }
+    if (data.containsKey('is_system')) {
+      context.handle(
+        _isSystemMeta,
+        isSystem.isAcceptableOrUnknown(data['is_system']!, _isSystemMeta),
+      );
+    }
     return context;
   }
 
@@ -1238,6 +1266,10 @@ class $WorkoutsTable extends Workouts with TableInfo<$WorkoutsTable, Workout> {
         DriftSqlType.dateTime,
         data['${effectivePrefix}updated_at'],
       )!,
+      isSystem: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_system'],
+      )!,
     );
   }
 
@@ -1253,12 +1285,14 @@ class Workout extends DataClass implements Insertable<Workout> {
   final String? notes;
   final DateTime createdAt;
   final DateTime updatedAt;
+  final bool isSystem;
   const Workout({
     required this.id,
     required this.name,
     this.notes,
     required this.createdAt,
     required this.updatedAt,
+    required this.isSystem,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -1270,6 +1304,7 @@ class Workout extends DataClass implements Insertable<Workout> {
     }
     map['created_at'] = Variable<DateTime>(createdAt);
     map['updated_at'] = Variable<DateTime>(updatedAt);
+    map['is_system'] = Variable<bool>(isSystem);
     return map;
   }
 
@@ -1282,6 +1317,7 @@ class Workout extends DataClass implements Insertable<Workout> {
           : Value(notes),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
+      isSystem: Value(isSystem),
     );
   }
 
@@ -1296,6 +1332,7 @@ class Workout extends DataClass implements Insertable<Workout> {
       notes: serializer.fromJson<String?>(json['notes']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+      isSystem: serializer.fromJson<bool>(json['isSystem']),
     );
   }
   @override
@@ -1307,6 +1344,7 @@ class Workout extends DataClass implements Insertable<Workout> {
       'notes': serializer.toJson<String?>(notes),
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
+      'isSystem': serializer.toJson<bool>(isSystem),
     };
   }
 
@@ -1316,12 +1354,14 @@ class Workout extends DataClass implements Insertable<Workout> {
     Value<String?> notes = const Value.absent(),
     DateTime? createdAt,
     DateTime? updatedAt,
+    bool? isSystem,
   }) => Workout(
     id: id ?? this.id,
     name: name ?? this.name,
     notes: notes.present ? notes.value : this.notes,
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
+    isSystem: isSystem ?? this.isSystem,
   );
   Workout copyWithCompanion(WorkoutsCompanion data) {
     return Workout(
@@ -1330,6 +1370,7 @@ class Workout extends DataClass implements Insertable<Workout> {
       notes: data.notes.present ? data.notes.value : this.notes,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      isSystem: data.isSystem.present ? data.isSystem.value : this.isSystem,
     );
   }
 
@@ -1340,13 +1381,15 @@ class Workout extends DataClass implements Insertable<Workout> {
           ..write('name: $name, ')
           ..write('notes: $notes, ')
           ..write('createdAt: $createdAt, ')
-          ..write('updatedAt: $updatedAt')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('isSystem: $isSystem')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(id, name, notes, createdAt, updatedAt);
+  int get hashCode =>
+      Object.hash(id, name, notes, createdAt, updatedAt, isSystem);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -1355,7 +1398,8 @@ class Workout extends DataClass implements Insertable<Workout> {
           other.name == this.name &&
           other.notes == this.notes &&
           other.createdAt == this.createdAt &&
-          other.updatedAt == this.updatedAt);
+          other.updatedAt == this.updatedAt &&
+          other.isSystem == this.isSystem);
 }
 
 class WorkoutsCompanion extends UpdateCompanion<Workout> {
@@ -1364,12 +1408,14 @@ class WorkoutsCompanion extends UpdateCompanion<Workout> {
   final Value<String?> notes;
   final Value<DateTime> createdAt;
   final Value<DateTime> updatedAt;
+  final Value<bool> isSystem;
   const WorkoutsCompanion({
     this.id = const Value.absent(),
     this.name = const Value.absent(),
     this.notes = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
+    this.isSystem = const Value.absent(),
   });
   WorkoutsCompanion.insert({
     this.id = const Value.absent(),
@@ -1377,6 +1423,7 @@ class WorkoutsCompanion extends UpdateCompanion<Workout> {
     this.notes = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
+    this.isSystem = const Value.absent(),
   }) : name = Value(name);
   static Insertable<Workout> custom({
     Expression<int>? id,
@@ -1384,6 +1431,7 @@ class WorkoutsCompanion extends UpdateCompanion<Workout> {
     Expression<String>? notes,
     Expression<DateTime>? createdAt,
     Expression<DateTime>? updatedAt,
+    Expression<bool>? isSystem,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -1391,6 +1439,7 @@ class WorkoutsCompanion extends UpdateCompanion<Workout> {
       if (notes != null) 'notes': notes,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
+      if (isSystem != null) 'is_system': isSystem,
     });
   }
 
@@ -1400,6 +1449,7 @@ class WorkoutsCompanion extends UpdateCompanion<Workout> {
     Value<String?>? notes,
     Value<DateTime>? createdAt,
     Value<DateTime>? updatedAt,
+    Value<bool>? isSystem,
   }) {
     return WorkoutsCompanion(
       id: id ?? this.id,
@@ -1407,6 +1457,7 @@ class WorkoutsCompanion extends UpdateCompanion<Workout> {
       notes: notes ?? this.notes,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
+      isSystem: isSystem ?? this.isSystem,
     );
   }
 
@@ -1428,6 +1479,9 @@ class WorkoutsCompanion extends UpdateCompanion<Workout> {
     if (updatedAt.present) {
       map['updated_at'] = Variable<DateTime>(updatedAt.value);
     }
+    if (isSystem.present) {
+      map['is_system'] = Variable<bool>(isSystem.value);
+    }
     return map;
   }
 
@@ -1438,7 +1492,8 @@ class WorkoutsCompanion extends UpdateCompanion<Workout> {
           ..write('name: $name, ')
           ..write('notes: $notes, ')
           ..write('createdAt: $createdAt, ')
-          ..write('updatedAt: $updatedAt')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('isSystem: $isSystem')
           ..write(')'))
         .toString();
   }
@@ -6444,6 +6499,7 @@ typedef $$WorkoutsTableCreateCompanionBuilder = WorkoutsCompanion Function({
   Value<String?> notes,
   Value<DateTime> createdAt,
   Value<DateTime> updatedAt,
+  Value<bool> isSystem,
 });
 typedef $$WorkoutsTableUpdateCompanionBuilder = WorkoutsCompanion Function({
   Value<int> id,
@@ -6451,6 +6507,7 @@ typedef $$WorkoutsTableUpdateCompanionBuilder = WorkoutsCompanion Function({
   Value<String?> notes,
   Value<DateTime> createdAt,
   Value<DateTime> updatedAt,
+  Value<bool> isSystem,
 });
 
 final class $$WorkoutsTableReferences
@@ -6529,6 +6586,11 @@ class $$WorkoutsTableFilterComposer
 
   ColumnFilters<DateTime> get updatedAt => $composableBuilder(
     column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isSystem => $composableBuilder(
+    column: $table.isSystem,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -6616,6 +6678,11 @@ class $$WorkoutsTableOrderingComposer
     column: $table.updatedAt,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<bool> get isSystem => $composableBuilder(
+    column: $table.isSystem,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$WorkoutsTableAnnotationComposer
@@ -6641,6 +6708,9 @@ class $$WorkoutsTableAnnotationComposer
 
   GeneratedColumn<DateTime> get updatedAt =>
       $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<bool> get isSystem =>
+      $composableBuilder(column: $table.isSystem, builder: (column) => column);
 
   Expression<T> workoutExercisesRefs<T extends Object>(
     Expression<T> Function($$WorkoutExercisesTableAnnotationComposer a) f,
@@ -6729,12 +6799,14 @@ class $$WorkoutsTableTableManager
                 Value<String?> notes = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
+                Value<bool> isSystem = const Value.absent(),
               }) => WorkoutsCompanion(
                 id: id,
                 name: name,
                 notes: notes,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
+                isSystem: isSystem,
               ),
           createCompanionCallback:
               ({
@@ -6743,12 +6815,14 @@ class $$WorkoutsTableTableManager
                 Value<String?> notes = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
+                Value<bool> isSystem = const Value.absent(),
               }) => WorkoutsCompanion.insert(
                 id: id,
                 name: name,
                 notes: notes,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
+                isSystem: isSystem,
               ),
           withReferenceMapper: (p0) => p0
               .map(

@@ -15,6 +15,7 @@ import 'daos/user_settings_dao.dart';
 import 'daos/weigh_ins_dao.dart';
 import 'daos/workouts_dao.dart';
 import 'enums.dart';
+import 'seed/seed_beginner_workouts.dart';
 import 'seed/seed_exercises.dart';
 import 'tables/cardio_entries_table.dart';
 import 'tables/catalog_templates_table.dart';
@@ -69,13 +70,14 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.connection);
 
   @override
-  int get schemaVersion => 8;
+  int get schemaVersion => 9;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
     onCreate: (m) async {
       await m.createAll();
       await batch((b) => b.insertAll(exercises, seedExercises));
+      await _seedBeginnerWorkouts();
     },
     onUpgrade: (m, from, to) async {
       // The v2 and v3 branches only touch independent columns/tables (neither
@@ -152,10 +154,53 @@ class AppDatabase extends _$AppDatabase {
       if (from < 8) {
         await m.createTable(gpsRunSessions);
       }
+      if (from < 9) {
+        await m.addColumn(workouts, workouts.isSystem);
+        for (final entry in exercisesAddedInSchemaV9) {
+          await into(exercises).insert(entry, mode: InsertMode.insertOrIgnore);
+        }
+        await _seedBeginnerWorkouts();
+      }
     },
     beforeOpen: (details) async {
       // SQLite ignores ON DELETE CASCADE/RESTRICT/SET NULL unless this is on.
       await customStatement('PRAGMA foreign_keys = ON');
     },
   );
+
+  /// Inserts the fixed "Treinos iniciante" workouts (see
+  /// seed_beginner_workouts.dart), resolving each exercise by its stable
+  /// slug — same convention as the template catalog and AI-generated
+  /// plans. A slug that doesn't resolve is skipped rather than failing the
+  /// whole seed (shouldn't happen here since the slugs come from this
+  /// app's own exercise seed, but mirrors the catalog's tolerant posture).
+  Future<void> _seedBeginnerWorkouts() async {
+    for (final workoutSeed in beginnerWorkoutSeeds) {
+      final workoutId = await into(workouts).insert(
+        WorkoutsCompanion.insert(
+          name: workoutSeed.name,
+          isSystem: const Value(true),
+        ),
+      );
+      var orderIndex = 0;
+      for (final exerciseSeed in workoutSeed.exercises) {
+        final exercise =
+            await (select(exercises)
+                  ..where((t) => t.slug.equals(exerciseSeed.exerciseSlug)))
+                .getSingleOrNull();
+        if (exercise == null) continue;
+        await into(workoutExercises).insert(
+          WorkoutExercisesCompanion.insert(
+            workoutId: workoutId,
+            exerciseId: exercise.id,
+            orderIndex: orderIndex++,
+            targetSets: exerciseSeed.targetSets,
+            targetReps: Value(exerciseSeed.targetReps),
+            targetRestSeconds: Value(exerciseSeed.targetRestSeconds),
+            notes: Value(exerciseSeed.notes),
+          ),
+        );
+      }
+    }
+  }
 }

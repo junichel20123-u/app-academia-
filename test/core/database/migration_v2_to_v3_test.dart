@@ -58,6 +58,24 @@ void main() {
         updated_at INTEGER NOT NULL,
         PRIMARY KEY (slug)
       );
+      CREATE TABLE workouts (
+        id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        notes TEXT NULL,
+        created_at INTEGER NOT NULL DEFAULT (CAST(strftime('%s', CURRENT_TIMESTAMP) AS INTEGER)),
+        updated_at INTEGER NOT NULL DEFAULT (CAST(strftime('%s', CURRENT_TIMESTAMP) AS INTEGER))
+      );
+      CREATE TABLE workout_exercises (
+        id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+        workout_id INTEGER NOT NULL REFERENCES workouts (id) ON DELETE CASCADE,
+        exercise_id INTEGER NOT NULL REFERENCES exercises (id) ON DELETE RESTRICT,
+        order_index INTEGER NOT NULL,
+        target_sets INTEGER NOT NULL,
+        target_reps INTEGER NULL,
+        target_weight REAL NULL,
+        target_rest_seconds INTEGER NULL,
+        notes TEXT NULL
+      );
     ''');
     raw.execute(
       "INSERT INTO user_settings_table (id, video_provider_id, unit_system, "

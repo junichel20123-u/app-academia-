@@ -9,12 +9,14 @@ class WorkoutExerciseRow extends StatelessWidget {
     required this.exerciseName,
     required this.onEditTargets,
     required this.onRemove,
+    this.readOnly = false,
   });
 
   final WorkoutExercise entry;
   final String exerciseName;
   final VoidCallback onEditTargets;
   final VoidCallback onRemove;
+  final bool readOnly;
 
   @override
   Widget build(BuildContext context) {
@@ -27,15 +29,17 @@ class WorkoutExerciseRow extends StatelessWidget {
 
     return ListTile(
       key: ValueKey(entry.id),
-      leading: const Icon(Icons.drag_handle),
+      leading: readOnly ? null : const Icon(Icons.drag_handle),
       title: Text(exerciseName),
       subtitle: Text(parts.join(' · ')),
-      onTap: onEditTargets,
-      trailing: IconButton(
-        icon: const Icon(Icons.delete_outline),
-        tooltip: 'Remover',
-        onPressed: onRemove,
-      ),
+      onTap: readOnly ? null : onEditTargets,
+      trailing: readOnly
+          ? null
+          : IconButton(
+              icon: const Icon(Icons.delete_outline),
+              tooltip: 'Remover',
+              onPressed: onRemove,
+            ),
     );
   }
 }

@@ -6,4 +6,7 @@ class Workouts extends Table {
   TextColumn get notes => text().nullable()();
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
   DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
+  // Built-in, fixed workouts (e.g. the "Treinos iniciante" category) that
+  // the user can duplicate but never edit or delete directly.
+  BoolColumn get isSystem => boolean().withDefault(const Constant(false))();
 }

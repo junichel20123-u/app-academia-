@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../app/theme/app_spacing.dart';
 import '../../../core/database/app_database.dart';
-import '../../../core/widgets/empty_state.dart';
 import '../../sessions/application/sessions_providers.dart';
 import '../application/workouts_providers.dart';
 
@@ -77,86 +77,118 @@ class WorkoutLibraryScreen extends ConsumerWidget {
     }
   }
 
+  Widget _workoutTile(BuildContext context, WidgetRef ref, Workout workout) {
+    final exerciseCount = ref.watch(workoutExercisesProvider(workout.id));
+    return TweenAnimationBuilder<double>(
+      key: ValueKey(workout.id),
+      tween: Tween(begin: 0, end: 1),
+      duration: const Duration(milliseconds: 250),
+      curve: Curves.easeOut,
+      builder: (context, value, child) {
+        return Opacity(opacity: value, child: child);
+      },
+      child: ListTile(
+        title: Text(workout.name),
+        subtitle: Text(
+          exerciseCount.maybeWhen(
+            data: (entries) => '${entries.length} exercício(s)',
+            orElse: () => '...',
+          ),
+        ),
+        onTap: () => context.push('/workouts/${workout.id}'),
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            IconButton(
+              icon: const Icon(Icons.play_arrow),
+              tooltip: 'Iniciar',
+              onPressed: () async {
+                final id = await ref
+                    .read(sessionsRepositoryProvider)
+                    .startSessionFromWorkout(workout);
+                if (context.mounted) {
+                  context.push('/sessions/$id');
+                }
+              },
+            ),
+            PopupMenuButton<String>(
+              onSelected: (action) {
+                switch (action) {
+                  case 'duplicate':
+                    _duplicateWorkout(ref, workout);
+                  case 'delete':
+                    _confirmDelete(context, ref, workout);
+                }
+              },
+              itemBuilder: (context) => [
+                const PopupMenuItem(
+                  value: 'duplicate',
+                  child: Text('Duplicar'),
+                ),
+                // Fixed "Treinos iniciante" workouts can be duplicated into
+                // an editable copy, but never deleted directly.
+                if (!workout.isSystem)
+                  const PopupMenuItem(value: 'delete', child: Text('Excluir')),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final workoutsAsync = ref.watch(workoutsListProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Meus treinos')),
+      appBar: AppBar(title: const Text('Treinos')),
       body: workoutsAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (err, _) => Center(child: Text('Erro: $err')),
         data: (workouts) {
-          if (workouts.isEmpty) {
-            return const EmptyState(
-              icon: Icons.fitness_center,
-              title: 'Nenhum treino ainda. Toque em + para criar.',
-            );
-          }
-          return ListView.builder(
-            itemCount: workouts.length,
-            itemBuilder: (context, index) {
-              final workout = workouts[index];
-              final exerciseCount = ref.watch(
-                workoutExercisesProvider(workout.id),
-              );
-              return TweenAnimationBuilder<double>(
-                key: ValueKey(workout.id),
-                tween: Tween(begin: 0, end: 1),
-                duration: const Duration(milliseconds: 250),
-                curve: Curves.easeOut,
-                builder: (context, value, child) {
-                  return Opacity(opacity: value, child: child);
-                },
-                child: ListTile(
-                  title: Text(workout.name),
-                  subtitle: Text(
-                    exerciseCount.maybeWhen(
-                      data: (entries) => '${entries.length} exercício(s)',
-                      orElse: () => '...',
+          final systemWorkouts = workouts.where((w) => w.isSystem).toList();
+          final myWorkouts = workouts.where((w) => !w.isSystem).toList();
+
+          return ListView(
+            children: [
+              const Padding(
+                padding: EdgeInsets.fromLTRB(16, 16, 16, 4),
+                child: Text(
+                  'Treinos iniciante',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+              ),
+              for (final workout in systemWorkouts)
+                _workoutTile(context, ref, workout),
+              const Padding(
+                padding: EdgeInsets.fromLTRB(16, 16, 16, 4),
+                child: Text(
+                  'Meus treinos',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+              ),
+              if (myWorkouts.isEmpty)
+                // A plain inline message, not the shared `EmptyState`
+                // widget — that one wraps itself in its own `ListView`
+                // (for pull-to-refresh screens), which can't be nested as
+                // a single item inside this outer `ListView`.
+                const Padding(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: AppSpacing.xl,
+                    vertical: AppSpacing.xxl,
+                  ),
+                  child: Center(
+                    child: Text(
+                      'Nenhum treino ainda. Toque em + para criar.',
+                      textAlign: TextAlign.center,
                     ),
                   ),
-                  onTap: () => context.push('/workouts/${workout.id}'),
-                  trailing: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      IconButton(
-                        icon: const Icon(Icons.play_arrow),
-                        tooltip: 'Iniciar',
-                        onPressed: () async {
-                          final id = await ref
-                              .read(sessionsRepositoryProvider)
-                              .startSessionFromWorkout(workout);
-                          if (context.mounted) {
-                            context.push('/sessions/$id');
-                          }
-                        },
-                      ),
-                      PopupMenuButton<String>(
-                        onSelected: (action) {
-                          switch (action) {
-                            case 'duplicate':
-                              _duplicateWorkout(ref, workout);
-                            case 'delete':
-                              _confirmDelete(context, ref, workout);
-                          }
-                        },
-                        itemBuilder: (context) => const [
-                          PopupMenuItem(
-                            value: 'duplicate',
-                            child: Text('Duplicar'),
-                          ),
-                          PopupMenuItem(
-                            value: 'delete',
-                            child: Text('Excluir'),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            },
+                )
+              else
+                for (final workout in myWorkouts)
+                  _workoutTile(context, ref, workout),
+            ],
           );
         },
       ),
