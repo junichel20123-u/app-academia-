@@ -8,6 +8,7 @@ import '../features/cardio/presentation/cardio_screen.dart';
 import '../features/dashboard/presentation/dashboard_screen.dart';
 import '../features/exercises/presentation/exercise_detail_screen.dart';
 import '../features/exercises/presentation/exercise_library_screen.dart';
+import '../features/gps_tracking/presentation/gps_run_screen.dart';
 import '../features/sessions/presentation/active_session_screen.dart';
 import '../features/sessions/presentation/session_history_screen.dart';
 import '../features/settings/presentation/settings_screen.dart';
@@ -70,6 +71,10 @@ final appRouter = GoRouter(
     GoRoute(
       path: '/cardio',
       pageBuilder: (context, state) => _page(state, const CardioScreen()),
+    ),
+    GoRoute(
+      path: '/gps-run',
+      pageBuilder: (context, state) => _page(state, const GpsRunScreen()),
     ),
     GoRoute(
       path: '/weigh-in',

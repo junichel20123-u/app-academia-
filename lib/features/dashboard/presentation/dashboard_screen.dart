@@ -41,6 +41,11 @@ class DashboardScreen extends ConsumerWidget {
         onTap: () => context.push('/cardio'),
       ),
       (
+        icon: Icons.satellite_alt,
+        label: 'Corrida/caminhada GPS',
+        onTap: () => context.push('/gps-run'),
+      ),
+      (
         icon: Icons.monitor_weight_outlined,
         label: 'Pesagem',
         onTap: () => context.push('/weigh-in'),

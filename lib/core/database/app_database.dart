@@ -9,6 +9,7 @@ import '../utils/slugify.dart';
 import 'daos/cardio_dao.dart';
 import 'daos/catalog_templates_dao.dart';
 import 'daos/exercises_dao.dart';
+import 'daos/gps_run_sessions_dao.dart';
 import 'daos/sessions_dao.dart';
 import 'daos/user_settings_dao.dart';
 import 'daos/weigh_ins_dao.dart';
@@ -19,6 +20,7 @@ import 'tables/cardio_entries_table.dart';
 import 'tables/catalog_templates_table.dart';
 import 'tables/exercise_videos_table.dart';
 import 'tables/exercises_table.dart';
+import 'tables/gps_run_sessions_table.dart';
 import 'tables/logged_sets_table.dart';
 import 'tables/user_settings_table.dart';
 import 'tables/weigh_ins_table.dart';
@@ -48,6 +50,7 @@ LazyDatabase _openConnection() {
     WeighIns,
     UserSettingsTable,
     CatalogTemplates,
+    GpsRunSessions,
   ],
   daos: [
     ExercisesDao,
@@ -57,6 +60,7 @@ LazyDatabase _openConnection() {
     WeighInsDao,
     UserSettingsDao,
     CatalogTemplatesDao,
+    GpsRunSessionsDao,
   ],
 )
 class AppDatabase extends _$AppDatabase {
@@ -65,7 +69,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.connection);
 
   @override
-  int get schemaVersion => 7;
+  int get schemaVersion => 8;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -144,6 +148,9 @@ class AppDatabase extends _$AppDatabase {
         for (final entry in exercisesAddedInSchemaV7) {
           await into(exercises).insert(entry, mode: InsertMode.insertOrIgnore);
         }
+      }
+      if (from < 8) {
+        await m.createTable(gpsRunSessions);
       }
     },
     beforeOpen: (details) async {

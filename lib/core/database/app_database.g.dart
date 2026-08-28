@@ -4942,6 +4942,448 @@ class CatalogTemplatesCompanion extends UpdateCompanion<CatalogTemplate> {
   }
 }
 
+class $GpsRunSessionsTable extends GpsRunSessions
+    with TableInfo<$GpsRunSessionsTable, GpsRunSession> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $GpsRunSessionsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  @override
+  late final GeneratedColumnWithTypeConverter<CardioActivityType, String>
+  activityType =
+      GeneratedColumn<String>(
+        'activity_type',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: true,
+      ).withConverter<CardioActivityType>(
+        $GpsRunSessionsTable.$converteractivityType,
+      );
+  static const VerificationMeta _startedAtMeta = const VerificationMeta(
+    'startedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> startedAt = GeneratedColumn<DateTime>(
+    'started_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  static const VerificationMeta _completedAtMeta = const VerificationMeta(
+    'completedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> completedAt = GeneratedColumn<DateTime>(
+    'completed_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _accumulatedDistanceMetersMeta =
+      const VerificationMeta('accumulatedDistanceMeters');
+  @override
+  late final GeneratedColumn<double> accumulatedDistanceMeters =
+      GeneratedColumn<double>(
+        'accumulated_distance_meters',
+        aliasedName,
+        false,
+        type: DriftSqlType.double,
+        requiredDuringInsert: false,
+        defaultValue: const Constant(0),
+      );
+  @override
+  late final GeneratedColumnWithTypeConverter<GpsRunSessionStatus, String>
+  status = GeneratedColumn<String>(
+    'status',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  ).withConverter<GpsRunSessionStatus>($GpsRunSessionsTable.$converterstatus);
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    activityType,
+    startedAt,
+    completedAt,
+    accumulatedDistanceMeters,
+    status,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'gps_run_sessions';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<GpsRunSession> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('started_at')) {
+      context.handle(
+        _startedAtMeta,
+        startedAt.isAcceptableOrUnknown(data['started_at']!, _startedAtMeta),
+      );
+    }
+    if (data.containsKey('completed_at')) {
+      context.handle(
+        _completedAtMeta,
+        completedAt.isAcceptableOrUnknown(
+          data['completed_at']!,
+          _completedAtMeta,
+        ),
+      );
+    }
+    if (data.containsKey('accumulated_distance_meters')) {
+      context.handle(
+        _accumulatedDistanceMetersMeta,
+        accumulatedDistanceMeters.isAcceptableOrUnknown(
+          data['accumulated_distance_meters']!,
+          _accumulatedDistanceMetersMeta,
+        ),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  GpsRunSession map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return GpsRunSession(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      activityType: $GpsRunSessionsTable.$converteractivityType.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}activity_type'],
+        )!,
+      ),
+      startedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}started_at'],
+      )!,
+      completedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}completed_at'],
+      ),
+      accumulatedDistanceMeters: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}accumulated_distance_meters'],
+      )!,
+      status: $GpsRunSessionsTable.$converterstatus.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}status'],
+        )!,
+      ),
+    );
+  }
+
+  @override
+  $GpsRunSessionsTable createAlias(String alias) {
+    return $GpsRunSessionsTable(attachedDatabase, alias);
+  }
+
+  static JsonTypeConverter2<CardioActivityType, String, String>
+  $converteractivityType = const EnumNameConverter<CardioActivityType>(
+    CardioActivityType.values,
+  );
+  static JsonTypeConverter2<GpsRunSessionStatus, String, String>
+  $converterstatus = const EnumNameConverter<GpsRunSessionStatus>(
+    GpsRunSessionStatus.values,
+  );
+}
+
+class GpsRunSession extends DataClass implements Insertable<GpsRunSession> {
+  final int id;
+  final CardioActivityType activityType;
+  final DateTime startedAt;
+  final DateTime? completedAt;
+  final double accumulatedDistanceMeters;
+  final GpsRunSessionStatus status;
+  const GpsRunSession({
+    required this.id,
+    required this.activityType,
+    required this.startedAt,
+    this.completedAt,
+    required this.accumulatedDistanceMeters,
+    required this.status,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    {
+      map['activity_type'] = Variable<String>(
+        $GpsRunSessionsTable.$converteractivityType.toSql(activityType),
+      );
+    }
+    map['started_at'] = Variable<DateTime>(startedAt);
+    if (!nullToAbsent || completedAt != null) {
+      map['completed_at'] = Variable<DateTime>(completedAt);
+    }
+    map['accumulated_distance_meters'] = Variable<double>(
+      accumulatedDistanceMeters,
+    );
+    {
+      map['status'] = Variable<String>(
+        $GpsRunSessionsTable.$converterstatus.toSql(status),
+      );
+    }
+    return map;
+  }
+
+  GpsRunSessionsCompanion toCompanion(bool nullToAbsent) {
+    return GpsRunSessionsCompanion(
+      id: Value(id),
+      activityType: Value(activityType),
+      startedAt: Value(startedAt),
+      completedAt: completedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(completedAt),
+      accumulatedDistanceMeters: Value(accumulatedDistanceMeters),
+      status: Value(status),
+    );
+  }
+
+  factory GpsRunSession.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return GpsRunSession(
+      id: serializer.fromJson<int>(json['id']),
+      activityType: $GpsRunSessionsTable.$converteractivityType.fromJson(
+        serializer.fromJson<String>(json['activityType']),
+      ),
+      startedAt: serializer.fromJson<DateTime>(json['startedAt']),
+      completedAt: serializer.fromJson<DateTime?>(json['completedAt']),
+      accumulatedDistanceMeters: serializer.fromJson<double>(
+        json['accumulatedDistanceMeters'],
+      ),
+      status: $GpsRunSessionsTable.$converterstatus.fromJson(
+        serializer.fromJson<String>(json['status']),
+      ),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'activityType': serializer.toJson<String>(
+        $GpsRunSessionsTable.$converteractivityType.toJson(activityType),
+      ),
+      'startedAt': serializer.toJson<DateTime>(startedAt),
+      'completedAt': serializer.toJson<DateTime?>(completedAt),
+      'accumulatedDistanceMeters': serializer.toJson<double>(
+        accumulatedDistanceMeters,
+      ),
+      'status': serializer.toJson<String>(
+        $GpsRunSessionsTable.$converterstatus.toJson(status),
+      ),
+    };
+  }
+
+  GpsRunSession copyWith({
+    int? id,
+    CardioActivityType? activityType,
+    DateTime? startedAt,
+    Value<DateTime?> completedAt = const Value.absent(),
+    double? accumulatedDistanceMeters,
+    GpsRunSessionStatus? status,
+  }) => GpsRunSession(
+    id: id ?? this.id,
+    activityType: activityType ?? this.activityType,
+    startedAt: startedAt ?? this.startedAt,
+    completedAt: completedAt.present ? completedAt.value : this.completedAt,
+    accumulatedDistanceMeters:
+        accumulatedDistanceMeters ?? this.accumulatedDistanceMeters,
+    status: status ?? this.status,
+  );
+  GpsRunSession copyWithCompanion(GpsRunSessionsCompanion data) {
+    return GpsRunSession(
+      id: data.id.present ? data.id.value : this.id,
+      activityType: data.activityType.present
+          ? data.activityType.value
+          : this.activityType,
+      startedAt: data.startedAt.present ? data.startedAt.value : this.startedAt,
+      completedAt: data.completedAt.present
+          ? data.completedAt.value
+          : this.completedAt,
+      accumulatedDistanceMeters: data.accumulatedDistanceMeters.present
+          ? data.accumulatedDistanceMeters.value
+          : this.accumulatedDistanceMeters,
+      status: data.status.present ? data.status.value : this.status,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('GpsRunSession(')
+          ..write('id: $id, ')
+          ..write('activityType: $activityType, ')
+          ..write('startedAt: $startedAt, ')
+          ..write('completedAt: $completedAt, ')
+          ..write('accumulatedDistanceMeters: $accumulatedDistanceMeters, ')
+          ..write('status: $status')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    activityType,
+    startedAt,
+    completedAt,
+    accumulatedDistanceMeters,
+    status,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is GpsRunSession &&
+          other.id == this.id &&
+          other.activityType == this.activityType &&
+          other.startedAt == this.startedAt &&
+          other.completedAt == this.completedAt &&
+          other.accumulatedDistanceMeters == this.accumulatedDistanceMeters &&
+          other.status == this.status);
+}
+
+class GpsRunSessionsCompanion extends UpdateCompanion<GpsRunSession> {
+  final Value<int> id;
+  final Value<CardioActivityType> activityType;
+  final Value<DateTime> startedAt;
+  final Value<DateTime?> completedAt;
+  final Value<double> accumulatedDistanceMeters;
+  final Value<GpsRunSessionStatus> status;
+  const GpsRunSessionsCompanion({
+    this.id = const Value.absent(),
+    this.activityType = const Value.absent(),
+    this.startedAt = const Value.absent(),
+    this.completedAt = const Value.absent(),
+    this.accumulatedDistanceMeters = const Value.absent(),
+    this.status = const Value.absent(),
+  });
+  GpsRunSessionsCompanion.insert({
+    this.id = const Value.absent(),
+    required CardioActivityType activityType,
+    this.startedAt = const Value.absent(),
+    this.completedAt = const Value.absent(),
+    this.accumulatedDistanceMeters = const Value.absent(),
+    required GpsRunSessionStatus status,
+  }) : activityType = Value(activityType),
+       status = Value(status);
+  static Insertable<GpsRunSession> custom({
+    Expression<int>? id,
+    Expression<String>? activityType,
+    Expression<DateTime>? startedAt,
+    Expression<DateTime>? completedAt,
+    Expression<double>? accumulatedDistanceMeters,
+    Expression<String>? status,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (activityType != null) 'activity_type': activityType,
+      if (startedAt != null) 'started_at': startedAt,
+      if (completedAt != null) 'completed_at': completedAt,
+      if (accumulatedDistanceMeters != null)
+        'accumulated_distance_meters': accumulatedDistanceMeters,
+      if (status != null) 'status': status,
+    });
+  }
+
+  GpsRunSessionsCompanion copyWith({
+    Value<int>? id,
+    Value<CardioActivityType>? activityType,
+    Value<DateTime>? startedAt,
+    Value<DateTime?>? completedAt,
+    Value<double>? accumulatedDistanceMeters,
+    Value<GpsRunSessionStatus>? status,
+  }) {
+    return GpsRunSessionsCompanion(
+      id: id ?? this.id,
+      activityType: activityType ?? this.activityType,
+      startedAt: startedAt ?? this.startedAt,
+      completedAt: completedAt ?? this.completedAt,
+      accumulatedDistanceMeters:
+          accumulatedDistanceMeters ?? this.accumulatedDistanceMeters,
+      status: status ?? this.status,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (activityType.present) {
+      map['activity_type'] = Variable<String>(
+        $GpsRunSessionsTable.$converteractivityType.toSql(activityType.value),
+      );
+    }
+    if (startedAt.present) {
+      map['started_at'] = Variable<DateTime>(startedAt.value);
+    }
+    if (completedAt.present) {
+      map['completed_at'] = Variable<DateTime>(completedAt.value);
+    }
+    if (accumulatedDistanceMeters.present) {
+      map['accumulated_distance_meters'] = Variable<double>(
+        accumulatedDistanceMeters.value,
+      );
+    }
+    if (status.present) {
+      map['status'] = Variable<String>(
+        $GpsRunSessionsTable.$converterstatus.toSql(status.value),
+      );
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('GpsRunSessionsCompanion(')
+          ..write('id: $id, ')
+          ..write('activityType: $activityType, ')
+          ..write('startedAt: $startedAt, ')
+          ..write('completedAt: $completedAt, ')
+          ..write('accumulatedDistanceMeters: $accumulatedDistanceMeters, ')
+          ..write('status: $status')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -4962,6 +5404,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $CatalogTemplatesTable catalogTemplates = $CatalogTemplatesTable(
     this,
   );
+  late final $GpsRunSessionsTable gpsRunSessions = $GpsRunSessionsTable(this);
   late final ExercisesDao exercisesDao = ExercisesDao(this as AppDatabase);
   late final WorkoutsDao workoutsDao = WorkoutsDao(this as AppDatabase);
   late final SessionsDao sessionsDao = SessionsDao(this as AppDatabase);
@@ -4971,6 +5414,9 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     this as AppDatabase,
   );
   late final CatalogTemplatesDao catalogTemplatesDao = CatalogTemplatesDao(
+    this as AppDatabase,
+  );
+  late final GpsRunSessionsDao gpsRunSessionsDao = GpsRunSessionsDao(
     this as AppDatabase,
   );
   @override
@@ -4988,6 +5434,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     weighIns,
     userSettingsTable,
     catalogTemplates,
+    gpsRunSessions,
   ];
   @override
   StreamQueryUpdateRules get streamUpdateRules => const StreamQueryUpdateRules([
@@ -8957,6 +9404,234 @@ typedef $$CatalogTemplatesTableProcessedTableManager =
       CatalogTemplate,
       PrefetchHooks Function()
     >;
+typedef $$GpsRunSessionsTableCreateCompanionBuilder =
+    GpsRunSessionsCompanion Function({
+      Value<int> id,
+      required CardioActivityType activityType,
+      Value<DateTime> startedAt,
+      Value<DateTime?> completedAt,
+      Value<double> accumulatedDistanceMeters,
+      required GpsRunSessionStatus status,
+    });
+typedef $$GpsRunSessionsTableUpdateCompanionBuilder =
+    GpsRunSessionsCompanion Function({
+      Value<int> id,
+      Value<CardioActivityType> activityType,
+      Value<DateTime> startedAt,
+      Value<DateTime?> completedAt,
+      Value<double> accumulatedDistanceMeters,
+      Value<GpsRunSessionStatus> status,
+    });
+
+class $$GpsRunSessionsTableFilterComposer
+    extends Composer<_$AppDatabase, $GpsRunSessionsTable> {
+  $$GpsRunSessionsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnWithTypeConverterFilters<CardioActivityType, CardioActivityType, String>
+  get activityType => $composableBuilder(
+    column: $table.activityType,
+    builder: (column) => ColumnWithTypeConverterFilters(column),
+  );
+
+  ColumnFilters<DateTime> get startedAt => $composableBuilder(
+    column: $table.startedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get completedAt => $composableBuilder(
+    column: $table.completedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get accumulatedDistanceMeters => $composableBuilder(
+    column: $table.accumulatedDistanceMeters,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnWithTypeConverterFilters<
+    GpsRunSessionStatus,
+    GpsRunSessionStatus,
+    String
+  >
+  get status => $composableBuilder(
+    column: $table.status,
+    builder: (column) => ColumnWithTypeConverterFilters(column),
+  );
+}
+
+class $$GpsRunSessionsTableOrderingComposer
+    extends Composer<_$AppDatabase, $GpsRunSessionsTable> {
+  $$GpsRunSessionsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get activityType => $composableBuilder(
+    column: $table.activityType,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get startedAt => $composableBuilder(
+    column: $table.startedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get completedAt => $composableBuilder(
+    column: $table.completedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get accumulatedDistanceMeters => $composableBuilder(
+    column: $table.accumulatedDistanceMeters,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get status => $composableBuilder(
+    column: $table.status,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$GpsRunSessionsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $GpsRunSessionsTable> {
+  $$GpsRunSessionsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumnWithTypeConverter<CardioActivityType, String>
+  get activityType => $composableBuilder(
+    column: $table.activityType,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get startedAt =>
+      $composableBuilder(column: $table.startedAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get completedAt => $composableBuilder(
+    column: $table.completedAt,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get accumulatedDistanceMeters => $composableBuilder(
+    column: $table.accumulatedDistanceMeters,
+    builder: (column) => column,
+  );
+
+  GeneratedColumnWithTypeConverter<GpsRunSessionStatus, String> get status =>
+      $composableBuilder(column: $table.status, builder: (column) => column);
+}
+
+class $$GpsRunSessionsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $GpsRunSessionsTable,
+          GpsRunSession,
+          $$GpsRunSessionsTableFilterComposer,
+          $$GpsRunSessionsTableOrderingComposer,
+          $$GpsRunSessionsTableAnnotationComposer,
+          $$GpsRunSessionsTableCreateCompanionBuilder,
+          $$GpsRunSessionsTableUpdateCompanionBuilder,
+          (
+            GpsRunSession,
+            BaseReferences<_$AppDatabase, $GpsRunSessionsTable, GpsRunSession>,
+          ),
+          GpsRunSession,
+          PrefetchHooks Function()
+        > {
+  $$GpsRunSessionsTableTableManager(
+    _$AppDatabase db,
+    $GpsRunSessionsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$GpsRunSessionsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$GpsRunSessionsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$GpsRunSessionsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<CardioActivityType> activityType = const Value.absent(),
+                Value<DateTime> startedAt = const Value.absent(),
+                Value<DateTime?> completedAt = const Value.absent(),
+                Value<double> accumulatedDistanceMeters = const Value.absent(),
+                Value<GpsRunSessionStatus> status = const Value.absent(),
+              }) => GpsRunSessionsCompanion(
+                id: id,
+                activityType: activityType,
+                startedAt: startedAt,
+                completedAt: completedAt,
+                accumulatedDistanceMeters: accumulatedDistanceMeters,
+                status: status,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required CardioActivityType activityType,
+                Value<DateTime> startedAt = const Value.absent(),
+                Value<DateTime?> completedAt = const Value.absent(),
+                Value<double> accumulatedDistanceMeters = const Value.absent(),
+                required GpsRunSessionStatus status,
+              }) => GpsRunSessionsCompanion.insert(
+                id: id,
+                activityType: activityType,
+                startedAt: startedAt,
+                completedAt: completedAt,
+                accumulatedDistanceMeters: accumulatedDistanceMeters,
+                status: status,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$GpsRunSessionsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $GpsRunSessionsTable,
+      GpsRunSession,
+      $$GpsRunSessionsTableFilterComposer,
+      $$GpsRunSessionsTableOrderingComposer,
+      $$GpsRunSessionsTableAnnotationComposer,
+      $$GpsRunSessionsTableCreateCompanionBuilder,
+      $$GpsRunSessionsTableUpdateCompanionBuilder,
+      (
+        GpsRunSession,
+        BaseReferences<_$AppDatabase, $GpsRunSessionsTable, GpsRunSession>,
+      ),
+      GpsRunSession,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -8981,4 +9656,6 @@ class $AppDatabaseManager {
       $$UserSettingsTableTableTableManager(_db, _db.userSettingsTable);
   $$CatalogTemplatesTableTableManager get catalogTemplates =>
       $$CatalogTemplatesTableTableManager(_db, _db.catalogTemplates);
+  $$GpsRunSessionsTableTableManager get gpsRunSessions =>
+      $$GpsRunSessionsTableTableManager(_db, _db.gpsRunSessions);
 }
