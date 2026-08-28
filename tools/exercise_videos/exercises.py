@@ -35,7 +35,11 @@ EXERCISES = [
     ("agachamento-livre", "Agachamento livre", "barbell back squat"),
     ("leg-press", "Leg press", "leg press machine"),
     ("cadeira-extensora", "Cadeira extensora", "leg extension machine"),
-    ("cadeira-flexora", "Cadeira flexora", "leg curl machine"),
+    (
+        "cadeira-flexora",
+        "Cadeira flexora",
+        "seated leg curl machine gym equipment",
+    ),
     ("afundo-com-halteres", "Afundo com halteres", "dumbbell lunge"),
     ("levantamento-terra", "Levantamento terra", "barbell deadlift"),
     (
@@ -65,7 +69,7 @@ EXERCISES = [
     ("prancha-abdominal", "Prancha abdominal", "plank exercise"),
     ("abdominal-supra", "Abdominal supra", "crunches exercise"),
     ("elevacao-de-pernas", "Elevação de pernas", "leg raise exercise"),
-    ("burpee", "Burpee", "burpee exercise"),
+    ("burpee", "Burpee", "person doing burpee exercise workout"),
     ("kettlebell-swing", "Kettlebell swing", "kettlebell swing"),
     ("corrida-na-esteira", "Corrida na esteira", "treadmill running"),
     # exercisesAddedInSchemaV4
@@ -81,8 +85,16 @@ EXERCISES = [
         "Puxada supinada na máquina",
         "underhand lat pulldown machine",
     ),
-    ("cadeira-adutora", "Cadeira adutora", "hip adductor machine"),
-    ("cadeira-abdutora", "Cadeira abdutora", "hip abductor machine"),
+    (
+        "cadeira-adutora",
+        "Cadeira adutora",
+        "seated hip adductor machine gym equipment",
+    ),
+    (
+        "cadeira-abdutora",
+        "Cadeira abdutora",
+        "seated hip abductor machine gym equipment",
+    ),
     (
         "panturrilha-em-pe-na-maquina",
         "Panturrilha em pé na máquina",
@@ -91,7 +103,7 @@ EXERCISES = [
     (
         "agachamento-hack-na-maquina",
         "Agachamento hack na máquina",
-        "hack squat machine",
+        "hack squat machine gym equipment",
     ),
     ("desenvolvimento-maquina", "Desenvolvimento máquina", "shoulder press machine"),
     ("triceps-maquina", "Tríceps máquina", "tricep extension machine"),
@@ -125,7 +137,11 @@ EXERCISES = [
     ("abducao-de-quadril-na-polia", "Abdução de quadril na polia", "cable hip abduction"),
     ("aducao-de-quadril-na-polia", "Adução de quadril na polia", "cable hip adduction"),
     ("flexao-de-quadril-na-polia", "Flexão de quadril na polia", "cable hip flexion"),
-    ("agachamento-na-polia", "Agachamento na polia", "cable squat"),
+    (
+        "agachamento-na-polia",
+        "Agachamento na polia",
+        "cable machine squat exercise gym",
+    ),
     ("stiff-na-polia", "Stiff na polia", "cable stiff leg deadlift"),
     ("woodchopper-na-polia", "Woodchopper na polia", "cable woodchopper"),
     (
@@ -152,5 +168,9 @@ EXERCISES = [
     ("afundo-alternado", "Afundo alternado", "alternating lunges bodyweight"),
     ("escalador", "Escalador", "mountain climbers exercise"),
     ("joelhos-altos", "Joelhos altos", "high knees exercise"),
-    ("agachamento-com-salto", "Agachamento com salto", "jump squat"),
+    (
+        "agachamento-com-salto",
+        "Agachamento com salto",
+        "jump squat exercise plyometric",
+    ),
 ]
