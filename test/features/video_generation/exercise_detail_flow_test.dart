@@ -7,6 +7,7 @@ import 'package:app_academia/features/settings/data/user_settings_repository.dar
 import 'package:app_academia/features/video_generation/application/exercise_video_providers.dart';
 import 'package:app_academia/features/video_generation/data/exercise_videos_repository.dart';
 import 'package:app_academia/features/video_generation/data/mock_video_generation_provider.dart';
+import 'package:app_academia/features/video_generation/data/stock_video_provider.dart';
 import 'package:app_academia/features/video_generation/domain/exercise_video_state.dart'
     as state;
 import 'package:drift/native.dart';
@@ -16,6 +17,15 @@ import 'package:flutter_test/flutter_test.dart';
 
 import '../../support/fake_file_storage_service.dart';
 import '../../support/fake_secure_storage_service.dart';
+
+/// Always reports a stock video as available, without ever touching Dio —
+/// same subclass-override shape `FakeFileStorageService` uses elsewhere.
+class _AlwaysHasStockVideo extends StockVideoProvider {
+  _AlwaysHasStockVideo() : super(baseUrl: null);
+
+  @override
+  Future<bool> hasVideoFor(Exercise exercise) async => true;
+}
 
 void main() {
   testWidgets('tapping Gerar vídeo drives the full pipeline through to Ready', (
@@ -156,6 +166,45 @@ void main() {
         findsOneWidget,
       );
       expect(find.text('Gerar vídeo'), findsNothing);
+
+      await tester.pumpWidget(const SizedBox());
+      await tester.pump(const Duration(milliseconds: 50));
+    },
+  );
+
+  testWidgets(
+    'a stock video bypasses NotConfigured even with no AI key stored',
+    (tester) async {
+      final db = AppDatabase.forTesting(NativeDatabase.memory());
+      addTearDown(db.close);
+      final exercise = (await db.exercisesDao.getAllExercises()).first;
+      final repository = UserSettingsRepository(
+        db,
+        secureStorage: FakeSecureStorageService(),
+      );
+      await repository.saveVideoProviderConfig(providerId: 'http_custom');
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            appDatabaseProvider.overrideWithValue(db),
+            userSettingsRepositoryProvider.overrideWithValue(repository),
+            stockVideoProviderProvider.overrideWithValue(
+              _AlwaysHasStockVideo(),
+            ),
+          ],
+          child: MaterialApp(
+            home: ExerciseDetailScreen(exerciseId: exercise.id),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text('Configure um provedor de vídeo em Configurações.'),
+        findsNothing,
+      );
+      expect(find.text('Gerar vídeo'), findsOneWidget);
 
       await tester.pumpWidget(const SizedBox());
       await tester.pump(const Duration(milliseconds: 50));

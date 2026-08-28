@@ -44,7 +44,10 @@ void main() {
       // workouts also render a play button now.
       final workoutTile = find.widgetWithText(ListTile, 'Treino de Perna');
       await tester.tap(
-        find.descendant(of: workoutTile, matching: find.byIcon(Icons.play_arrow)),
+        find.descendant(
+          of: workoutTile,
+          matching: find.byIcon(Icons.play_arrow),
+        ),
       );
       await tester.pumpAndSettle();
 

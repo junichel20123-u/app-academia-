@@ -1,14 +1,15 @@
-# Download de vídeos de exercício (Pexels)
+# Vídeos de exercício: busca, download e upload (Pexels + Supabase Storage)
 
-Script utilitário, **local e offline**, para baixar candidatos de vídeo de
-estoque (gratuitos para uso comercial) de cada exercício já seedado no app,
-via a API da [Pexels](https://www.pexels.com/api/). Não faz parte do app
-Flutter — não precisa de build/APK depois de rodar.
+Scripts utilitários, **locais**, para montar a biblioteca de vídeos
+ilustrativos de execução de exercícios: buscar/baixar candidatos gratuitos
+da Pexels, e depois subir os escolhidos pro Supabase Storage, de onde o app
+os consome. Nenhum dos dois faz parte do app Flutter em si — não precisam
+de build/APK pra rodar (só o app consumindo os vídeos já hospedados precisa
+de um novo build).
 
 Isso substitui a geração de vídeo por IA sob demanda (que tem custo
-recorrente por chamada) por uma biblioteca pré-baixada, escolhida uma vez.
-A etapa seguinte (hospedar os vídeos escolhidos e o app consumi-los) é um
-marco separado, feito depois que os candidatos aqui forem revisados.
+recorrente por chamada) por uma biblioteca pré-baixada, escolhida uma vez e
+hospedada estaticamente.
 
 ## Passo a passo
 
@@ -52,7 +53,29 @@ marco separado, feito depois que os candidatos aqui forem revisados.
    candidatos e renomeie o melhor para `chosen.mp4`. Exercícios em
    `_sem_resultado.txt` precisam de uma busca manual direta no site da
    Pexels (o termo de busca em inglês gerado automaticamente pode não achar
-   nada para aparelhos bem específicos de academia).
+   nada para aparelhos bem específicos de academia). Não precisa ter
+   `chosen.mp4` em 100% das pastas — um exercício sem vídeo escolhido
+   simplesmente não terá vídeo no app (fallback gracioso já existente).
+
+6. **Suba os vídeos escolhidos pro Supabase Storage**: precisa de um projeto
+   Supabase já criado (mesmo usado pelo catálogo/montador de IA) com a
+   migration `supabase/migrations/..._create_exercise_videos_bucket.sql`
+   aplicada (`supabase db push`), e a **service_role key** do projeto
+   (Project Settings → API Keys — não é a `anon`/`publishable`; essa chave
+   ignora RLS e nunca deve ser colada no chat nem commitada):
+
+   ```bash
+   export SUPABASE_URL=https://<seu-project-ref>.supabase.co
+   export SUPABASE_SERVICE_ROLE_KEY=sua-service-role-key
+
+   python upload_to_supabase.py
+   ```
+
+   Sobe cada `output/<slug>/chosen.mp4` existente pro bucket público
+   `exercise-videos`, em `exercise-videos/<slug>.mp4`. Reexecutável sem
+   duplicar (usa upsert — sobrescreve com o arquivo local atual). O app
+   Flutter (feature `video_generation`) já sabe verificar e tocar um vídeo
+   hospedado aqui automaticamente, com prioridade sobre a geração por IA.
 
 ## Licença dos vídeos da Pexels
 
@@ -63,11 +86,10 @@ explícita. Este script fica claramente dentro do uso normal da API: uma
 busca pontual por exercício (não uma varredura do catálogo inteiro), com
 pausa entre chamadas, resultando em bem menos que 100 requisições no total.
 
-## Fora de escopo deste script
+## Fora de escopo destes scripts
 
-- Comprimir/recortar os `chosen.mp4` (ex.: via `ffmpeg`).
-- Subir os vídeos escolhidos para hospedagem (ex.: Supabase Storage).
-- Qualquer mudança no app Flutter para consumir esses vídeos.
+- Comprimir/recortar os `chosen.mp4` (ex.: via `ffmpeg`) antes do upload.
 
-Esses passos ficam para um marco seguinte, depois que os candidatos aqui
-forem revisados e escolhidos.
+O app Flutter consumindo os vídeos hospedados (`StockVideoProvider` em
+`lib/features/video_generation/data/`) já está implementado e não precisa
+de nenhum passo manual adicional além do upload acima.

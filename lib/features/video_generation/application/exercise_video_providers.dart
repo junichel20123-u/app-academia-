@@ -2,22 +2,43 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/database/enums.dart';
 import '../../../core/providers/database_provider.dart';
+import '../../../core/supabase/supabase_config.dart';
 import '../../settings/application/user_settings_providers.dart';
+import '../data/composite_video_generation_provider.dart';
 import '../data/exercise_videos_repository.dart';
 import '../data/provider_registry.dart';
+import '../data/stock_video_provider.dart';
 import '../domain/exercise_video_state.dart' as state;
 import '../domain/video_generation_provider.dart';
 
+/// Resolves `SupabaseConfig` exactly once, at this wiring boundary — see
+/// `StockVideoProvider`'s doc comment for why it never reads the (untestable
+/// under `flutter_test`) `SupabaseConfig` constants itself. Same idiom
+/// `ai_plan_builder_providers.dart`/`template_catalog` use for their own
+/// Supabase-backed repositories.
+final stockVideoProviderProvider = Provider<StockVideoProvider>((ref) {
+  return StockVideoProvider(
+    baseUrl: SupabaseConfig.isConfigured ? SupabaseConfig.url : null,
+  );
+});
+
 /// The active provider, derived from the persisted settings (provider id +
-/// base URL). Falls back to Mock while settings are still loading or when
-/// none was ever configured.
+/// base URL), wrapped so a pre-hosted stock video (see `StockVideoProvider`)
+/// always takes priority and needs no configuration at all — only an
+/// exercise with no stock video ever actually reaches the user-configured
+/// AI provider below. Falls back to Mock while settings are still loading
+/// or when none was ever configured.
 final videoGenerationProviderProvider = Provider<VideoGenerationProvider>((
   ref,
 ) {
   final settings = ref.watch(userSettingsProvider).value;
-  return ProviderRegistry.create(
+  final fallback = ProviderRegistry.create(
     settings?.videoProviderId ?? ProviderRegistry.mock.id,
     baseUrl: settings?.videoProviderBaseUrl,
+  );
+  return CompositeVideoGenerationProvider(
+    stockProvider: ref.watch(stockVideoProviderProvider),
+    fallbackProvider: fallback,
   );
 });
 
@@ -48,13 +69,28 @@ final exerciseVideoStateProvider = StreamProvider.autoDispose
 
       if (descriptor.requiresApiKey) {
         final repository = ref.watch(userSettingsRepositoryProvider);
-        return Stream.fromFuture(repository.getApiKeyFor(providerId))
-            .asyncExpand((apiKey) {
-              if (apiKey == null || apiKey.isEmpty) {
-                return Stream.value(const state.NotConfigured());
-              }
-              return _watchVideoState(ref, exerciseId);
-            });
+        final db = ref.watch(appDatabaseProvider);
+        final stockProvider = ref.watch(stockVideoProviderProvider);
+        return Stream.fromFuture(
+          repository.getApiKeyFor(providerId),
+        ).asyncExpand((apiKey) {
+          if (apiKey != null && apiKey.isNotEmpty) {
+            return _watchVideoState(ref, exerciseId);
+          }
+          // No AI key configured — but a stock video needs none, so an
+          // exercise that has one must never be blocked by this gate.
+          return Stream.fromFuture(db.exercisesDao.getExerciseById(exerciseId))
+              .asyncExpand((exercise) {
+                if (exercise == null) {
+                  return Stream.value(const state.NotConfigured());
+                }
+                return Stream.fromFuture(stockProvider.hasVideoFor(exercise))
+                    .asyncExpand((hasStock) {
+                      if (hasStock) return _watchVideoState(ref, exerciseId);
+                      return Stream.value(const state.NotConfigured());
+                    });
+              });
+        });
       }
 
       return _watchVideoState(ref, exerciseId);
