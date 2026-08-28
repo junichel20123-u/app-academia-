@@ -1,4 +1,6 @@
 import 'package:app_academia/core/database/app_database.dart';
+import 'package:app_academia/features/ai_plan_builder/data/ai_plan_builder_repository.dart';
+import 'package:app_academia/features/ai_plan_builder/domain/generated_plan.dart';
 import 'package:app_academia/features/workouts/data/workouts_repository.dart';
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -87,5 +89,47 @@ void main() {
     final workoutId = await repo.createWorkout(name: 'A excluir');
     await repo.deleteWorkout(workoutId);
     expect(await repo.getWorkoutById(workoutId), isNull);
+  });
+
+  group('applyAdjustedExercises', () {
+    test('resolves slugs and replaces the workout exercise list', () async {
+      final workoutId = await repo.createWorkout(name: 'Treino ajustável');
+      final exercise = (await db.exercisesDao.getAllExercises()).firstWhere(
+        (e) => e.slug != null,
+      );
+
+      await repo.applyAdjustedExercises(
+        workoutId: workoutId,
+        exercises: [
+          GeneratedPlanExercise(
+            exerciseSlug: exercise.slug!,
+            targetSets: 4,
+            targetReps: 12,
+          ),
+        ],
+      );
+
+      final entries = await repo.watchExercisesForWorkout(workoutId).first;
+      expect(entries, hasLength(1));
+      expect(entries.first.targetSets, 4);
+      expect(entries.first.targetReps, 12);
+    });
+
+    test('throws UnresolvedPlanExercisesException for an unknown slug', () async {
+      final workoutId = await repo.createWorkout(name: 'Treino ajustável');
+
+      expect(
+        () => repo.applyAdjustedExercises(
+          workoutId: workoutId,
+          exercises: const [
+            GeneratedPlanExercise(
+              exerciseSlug: 'nao-existe-neste-install',
+              targetSets: 3,
+            ),
+          ],
+        ),
+        throwsA(isA<UnresolvedPlanExercisesException>()),
+      );
+    });
   });
 }

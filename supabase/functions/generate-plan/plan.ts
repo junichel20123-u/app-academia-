@@ -1,20 +1,16 @@
 import { z } from "npm:zod@^4.0.0";
 
+import {
+  buildExercisesSchema,
+  CatalogExerciseSchema,
+} from "../_shared/exercise_plan_schema.ts";
+
 export const RequestSchema = z.object({
   goal: z.string().min(1),
   daysPerWeek: z.number().int().min(1).max(7),
   experienceLevel: z.string().min(1),
   availableEquipment: z.array(z.string()),
-  exercises: z
-    .array(
-      z.object({
-        slug: z.string().min(1),
-        name: z.string().min(1),
-        muscleGroup: z.string().min(1),
-        equipment: z.string().nullable(),
-      }),
-    )
-    .min(1),
+  exercises: z.array(CatalogExerciseSchema).min(1),
 });
 
 export type GeneratePlanRequest = z.infer<typeof RequestSchema>;
@@ -32,48 +28,10 @@ export type GeneratePlanRequest = z.infer<typeof RequestSchema>;
  * shape, so this Zod schema is the one place both sides agree on).
  */
 export function buildPlanSchema(daysPerWeek: number, slugs: string[]) {
-  if (slugs.length === 0) {
-    throw new Error("slugs must be non-empty");
-  }
-  const [first, ...rest] = slugs;
-  const exerciseSlug = z.enum([first, ...rest]);
-  // Bounds picked from real strength-training ranges, not just "some
-  // positive number": they exist to catch a plausible-looking but
-  // nonsensical generation (e.g. targetSets: 500) that a bare `.positive()`
-  // would happily let through, rather than as a description of the ideal
-  // program for any given goal — that nuance lives in SYSTEM_PROMPT, since
-  // a schema bound can only reject, not steer.
-  const exercises = z
-    .array(
-      z.object({
-        exerciseSlug,
-        targetSets: z.number().int().min(1).max(8),
-        targetReps: z.number().int().min(1).max(50).nullable(),
-        targetRestSeconds: z.number().int().min(10).max(600).nullable(),
-        notes: z.string().nullable(),
-      }),
-    )
-    .min(1)
-    .max(12)
-    // `uniqueItems` in JSON Schema checks whole-object equality, not one
-    // field, so it can't express "no repeated exerciseSlug within a day"
-    // (two entries could legitimately share sets/reps but not the same
-    // exercise) — that constraint only exists here, as a post-generation
-    // check, same as the closed-slug-list safety net in index.ts.
-    .superRefine((entries, ctx) => {
-      const seen = new Set<string>();
-      entries.forEach((entry, index) => {
-        if (seen.has(entry.exerciseSlug)) {
-          ctx.addIssue({
-            code: "custom",
-            message:
-              `duplicate exerciseSlug "${entry.exerciseSlug}" in the same workout`,
-            path: [index, "exerciseSlug"],
-          });
-        }
-        seen.add(entry.exerciseSlug);
-      });
-    });
+  // buildExercisesSchema throws on an empty slug list itself (shared with
+  // adjust-workout — see _shared/exercise_plan_schema.ts), which is exactly
+  // this function's own former guard, so no need to repeat it here.
+  const exercises = buildExercisesSchema(slugs);
   return z.object({
     workouts: z
       .array(z.object({ name: z.string(), exercises }))

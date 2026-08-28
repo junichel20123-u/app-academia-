@@ -66,6 +66,11 @@ class DashboardScreen extends ConsumerWidget {
         onTap: () => context.push('/plan-builder'),
       ),
       (
+        icon: Icons.chat_bubble_outline,
+        label: 'Coach de IA',
+        onTap: () => context.push('/coach'),
+      ),
+      (
         icon: Icons.settings,
         label: 'Configurações',
         onTap: () => context.push('/settings'),

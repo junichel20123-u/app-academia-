@@ -1,6 +1,9 @@
 import 'package:drift/drift.dart';
 
 import '../../../core/database/app_database.dart';
+import '../../../core/database/daos/workouts_dao.dart';
+import '../../ai_plan_builder/data/ai_plan_builder_repository.dart';
+import '../../ai_plan_builder/domain/generated_plan.dart';
 
 class WorkoutsRepository {
   WorkoutsRepository(this._db);
@@ -92,6 +95,43 @@ class WorkoutsRepository {
     if (newOrder.isNotEmpty) {
       await _touchWorkout(newOrder.first.workoutId);
     }
+  }
+
+  /// Applies an AI-proposed exercise list (see
+  /// `AiCoachRepository.proposeWorkoutAdjustment`) to an existing workout:
+  /// resolves each `exerciseSlug` to this install's local exercise, then
+  /// replaces the workout's entries wholesale via
+  /// `WorkoutsDao.replaceWorkoutExercises`. Throws
+  /// [UnresolvedPlanExercisesException] if a slug doesn't resolve locally —
+  /// same safety net `AiPlanBuilderRepository.importPlan` already uses,
+  /// shouldn't happen since the Edge Function constrains generation to a
+  /// closed enum of the slugs this install sent it.
+  Future<void> applyAdjustedExercises({
+    required int workoutId,
+    required List<GeneratedPlanExercise> exercises,
+  }) async {
+    final entries = <WorkoutExerciseEntry>[];
+    var orderIndex = 0;
+    for (final exercise in exercises) {
+      final localExercise = await _db.exercisesDao.getExerciseBySlug(
+        exercise.exerciseSlug,
+      );
+      if (localExercise == null) {
+        throw UnresolvedPlanExercisesException([exercise.exerciseSlug]);
+      }
+      entries.add(
+        WorkoutExerciseEntry(
+          exerciseId: localExercise.id,
+          orderIndex: orderIndex++,
+          targetSets: exercise.targetSets,
+          targetReps: exercise.targetReps,
+          targetRestSeconds: exercise.targetRestSeconds,
+          notes: exercise.notes,
+        ),
+      );
+    }
+    await _db.workoutsDao.replaceWorkoutExercises(workoutId, entries);
+    await _touchWorkout(workoutId);
   }
 
   Future<void> _touchWorkout(int workoutId) async {

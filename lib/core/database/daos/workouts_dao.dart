@@ -72,6 +72,40 @@ class WorkoutsDao extends DatabaseAccessor<AppDatabase>
   Future<int> deleteWorkoutExercise(int id) =>
       (delete(workoutExercises)..where((t) => t.id.equals(id))).go();
 
+  /// Replaces every exercise entry for [workoutId] with [entries] — the
+  /// AI workout-adjustment flow's "apply" step (see
+  /// `AiCoachRepository.proposeWorkoutAdjustment` /
+  /// `WorkoutsRepository.applyAdjustedExercises`), which always proposes a
+  /// full revised list rather than a line-by-line diff. Safe to delete the
+  /// old rows outright: `LoggedSets.workoutExerciseId` uses
+  /// `onDelete: KeyAction.setNull` (see logged_sets_table.dart), so a past
+  /// logged set only loses its link to the specific old target row — the
+  /// session/exercise/reps history itself is untouched.
+  Future<void> replaceWorkoutExercises(
+    int workoutId,
+    List<WorkoutExerciseEntry> entries,
+  ) {
+    return transaction(() async {
+      await (delete(
+        workoutExercises,
+      )..where((t) => t.workoutId.equals(workoutId))).go();
+      for (final entry in entries) {
+        await insertWorkoutExercise(
+          WorkoutExercisesCompanion.insert(
+            workoutId: workoutId,
+            exerciseId: entry.exerciseId,
+            orderIndex: entry.orderIndex,
+            targetSets: entry.targetSets,
+            targetReps: Value(entry.targetReps),
+            targetWeight: Value(entry.targetWeight),
+            targetRestSeconds: Value(entry.targetRestSeconds),
+            notes: Value(entry.notes),
+          ),
+        );
+      }
+    });
+  }
+
   /// Deep-copies a workout (and its exercise entries) into a new template.
   Future<int> duplicateWorkout(int workoutId, {required String newName}) {
     return transaction(() async {

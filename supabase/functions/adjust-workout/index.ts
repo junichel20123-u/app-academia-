@@ -1,10 +1,10 @@
 import {
-  buildPlanJsonSchema,
-  buildPlanSchema,
+  buildAdjustJsonSchema,
+  buildAdjustSchema,
   buildUserPrompt,
   RequestSchema,
   SYSTEM_PROMPT,
-} from "./plan.ts";
+} from "./adjust.ts";
 import { GeminiTextGenerationProvider } from "../_shared/providers/gemini_text_generation_provider.ts";
 import { TextGenerationError } from "../_shared/providers/text_generation_provider.ts";
 
@@ -15,9 +15,7 @@ function jsonResponse(body: unknown, status: number): Response {
   });
 }
 
-// Maps our provider-agnostic error taxonomy to an HTTP status. Kept here
-// (not in the provider) since "what status code a client sees" is a
-// decision for this endpoint, not for any one vendor's SDK.
+// Same taxonomy->status mapping as generate-plan/index.ts.
 function statusForError(error: TextGenerationError): number {
   switch (error.kind) {
     case "invalid_request":
@@ -49,10 +47,6 @@ Deno.serve(async (req) => {
     );
   }
 
-  // GEMINI_API_KEY only ever lives as an Edge Function secret (`supabase
-  // secrets set`) — never in this source, never on the client, never in
-  // the local SQLite database. See the app's M17 plan note (provider
-  // switch from Anthropic to Gemini for free-tier prototyping).
   const apiKey = Deno.env.get("GEMINI_API_KEY");
   if (!apiKey) {
     return jsonResponse(
@@ -62,7 +56,6 @@ Deno.serve(async (req) => {
   }
 
   const slugs = input.exercises.map((e) => e.slug);
-  const planSchema = buildPlanSchema(input.daysPerWeek, slugs);
   const provider = new GeminiTextGenerationProvider(
     apiKey,
     Deno.env.get("GEMINI_MODEL") || undefined,
@@ -72,32 +65,31 @@ Deno.serve(async (req) => {
     const raw = await provider.generateStructured({
       systemPrompt: SYSTEM_PROMPT,
       userPrompt: buildUserPrompt(input),
-      jsonSchema: buildPlanJsonSchema(input.daysPerWeek, slugs),
+      jsonSchema: buildAdjustJsonSchema(slugs),
     });
 
-    // A plan with any exerciseSlug outside the closed list, or the wrong
-    // number of days, fails this Zod validation (the enum/length
-    // constraints are part of planSchema — the same schema already sent to
-    // the provider as the required response shape, so this is a safety net
-    // rather than the primary guarantee). Reject the whole plan rather than
-    // salvage a partial one: unlike the free, curated template catalog
-    // (which skips one bad entry and warns), this is an on-demand
-    // generation, so a structural failure should be visible, not silently
-    // patched over.
-    const parsed = planSchema.safeParse(raw);
+    // Same posture as generate-plan/index.ts: reject the whole proposal
+    // rather than salvage a partial one — the schema/enum bounds sent as
+    // the required response shape are a safety net, not the primary
+    // guarantee, and an on-demand adjustment that comes back malformed
+    // should surface as an error, not a silently patched result.
+    const parsed = buildAdjustSchema(slugs).safeParse(raw);
     if (!parsed.success) {
-      return jsonResponse({ error: "A IA não retornou um plano válido." }, 502);
+      return jsonResponse(
+        { error: "A IA não retornou um ajuste válido." },
+        502,
+      );
     }
 
     return jsonResponse(parsed.data, 200);
   } catch (error) {
-    console.error("generate-plan error", error);
+    console.error("adjust-workout error", error);
     if (error instanceof TextGenerationError) {
       return jsonResponse(
-        { error: "Falha ao gerar o plano." },
+        { error: "Falha ao gerar o ajuste." },
         statusForError(error),
       );
     }
-    return jsonResponse({ error: "Falha ao gerar o plano." }, 502);
+    return jsonResponse({ error: "Falha ao gerar o ajuste." }, 502);
   }
 });

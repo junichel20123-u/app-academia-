@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../features/ai_coach/presentation/ai_coach_screen.dart';
+import '../features/ai_coach/presentation/ai_workout_adjust_screen.dart';
+import '../features/ai_coach/presentation/workout_adjustment_preview_screen.dart';
 import '../features/ai_plan_builder/domain/generated_plan.dart';
 import '../features/ai_plan_builder/presentation/ai_plan_builder_screen.dart';
 import '../features/ai_plan_builder/presentation/plan_preview_screen.dart';
@@ -118,6 +121,27 @@ final appRouter = GoRouter(
       pageBuilder: (context, state) {
         final workouts = state.extra! as List<GeneratedPlanWorkout>;
         return _page(state, PlanPreviewScreen(workouts: workouts));
+      },
+    ),
+    GoRoute(
+      path: '/coach',
+      pageBuilder: (context, state) => _page(state, const AiCoachScreen()),
+    ),
+    GoRoute(
+      path: '/coach/adjust',
+      pageBuilder: (context, state) {
+        final initialWorkoutId = state.extra as int?;
+        return _page(
+          state,
+          AiWorkoutAdjustScreen(initialWorkoutId: initialWorkoutId),
+        );
+      },
+    ),
+    GoRoute(
+      path: '/coach/adjust/preview',
+      pageBuilder: (context, state) {
+        final args = state.extra! as WorkoutAdjustmentPreviewArgs;
+        return _page(state, WorkoutAdjustmentPreviewScreen(args: args));
       },
     ),
   ],

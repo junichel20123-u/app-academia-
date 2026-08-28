@@ -95,7 +95,20 @@ class _WorkoutEditScreenState extends ConsumerState<WorkoutEditScreen> {
         : 'Editar treino';
 
     return Scaffold(
-      appBar: AppBar(title: Text(title)),
+      appBar: AppBar(
+        title: Text(title),
+        actions: [
+          if (currentWorkout != null && !currentWorkout.isSystem)
+            IconButton(
+              icon: const Icon(Icons.auto_awesome),
+              tooltip: 'Ajustar com IA',
+              onPressed: () => context.push(
+                '/coach/adjust',
+                extra: currentWorkout.id,
+              ),
+            ),
+        ],
+      ),
       body: workoutAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (err, _) => Center(child: Text('Erro: $err')),
