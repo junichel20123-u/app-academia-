@@ -26,6 +26,15 @@
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<!-- Required by the GPS run/walk tracking feature (lib/features/gps_tracking) —
+	     without these, geolocator/permission_handler's permission request
+	     crashes the app at runtime on iOS. Location is only ever kept in
+	     memory to compute distance, never persisted or sent anywhere (same
+	     as documented in android/app/src/main/AndroidManifest.xml). -->
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>App Academia usa sua localização para registrar a distância percorrida durante corridas e caminhadas.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>App Academia usa sua localização para continuar registrando corridas e caminhadas mesmo com o app em segundo plano.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

@@ -4,11 +4,15 @@ import 'package:app_academia/core/providers/database_provider.dart';
 import 'package:app_academia/features/settings/application/user_settings_providers.dart';
 import 'package:app_academia/features/settings/data/user_settings_repository.dart';
 import 'package:app_academia/features/settings/presentation/settings_screen.dart';
+import 'package:app_academia/features/video_generation/application/exercise_video_providers.dart';
+import 'package:app_academia/features/video_generation/data/exercise_videos_repository.dart';
+import 'package:app_academia/features/video_generation/data/mock_video_generation_provider.dart';
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import '../../support/fake_file_storage_service.dart';
 import '../../support/fake_secure_storage_service.dart';
 
 void main() {
@@ -186,4 +190,60 @@ void main() {
       await tester.pump(const Duration(milliseconds: 50));
     },
   );
+
+  testWidgets('Limpar cache de vídeos clears the cache after confirmation', (
+    tester,
+  ) async {
+    final db = AppDatabase.forTesting(NativeDatabase.memory());
+    addTearDown(db.close);
+    final repository = UserSettingsRepository(
+      db,
+      secureStorage: FakeSecureStorageService(),
+    );
+    final fileStorage = FakeFileStorageService();
+    final videosRepository = ExerciseVideosRepository(
+      db,
+      MockVideoGenerationProvider(),
+      fileStorage: fileStorage,
+    );
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          appDatabaseProvider.overrideWithValue(db),
+          userSettingsRepositoryProvider.overrideWithValue(repository),
+          exerciseVideosRepositoryProvider.overrideWithValue(videosRepository),
+        ],
+        child: const MaterialApp(home: SettingsScreen()),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // The cache section is the last one in the list, past the default
+    // render viewport/cache extent — same scroll-into-view need as the
+    // "Modo de teste" section above.
+    final clearButton = find.text(
+      'Limpar cache de vídeos',
+      skipOffstage: false,
+    );
+    await tester.ensureVisible(clearButton);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Cache de vídeos'), findsOneWidget);
+    expect(find.text('Tamanho atual: 0.0 MB'), findsOneWidget);
+
+    await tester.tap(clearButton);
+    await tester.pumpAndSettle();
+
+    // Confirmation dialog.
+    expect(find.text('Limpar cache de vídeos?'), findsOneWidget);
+    await tester.tap(find.text('Limpar'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Cache de vídeos limpo.'), findsOneWidget);
+    expect(fileStorage.cacheCleared, isTrue);
+
+    await tester.pumpWidget(const SizedBox());
+    await tester.pump(const Duration(milliseconds: 50));
+  });
 }

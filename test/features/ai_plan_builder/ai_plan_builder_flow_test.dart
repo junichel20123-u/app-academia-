@@ -77,4 +77,56 @@ void main() {
     await tester.pumpWidget(const SizedBox());
     await tester.pump(const Duration(milliseconds: 50));
   });
+
+  testWidgets(
+    'importing a plan with an unresolvable slug shows a sanitized message, '
+    'never the raw exception',
+    (tester) async {
+      final db = AppDatabase.forTesting(NativeDatabase.memory());
+      addTearDown(db.close);
+
+      final workouts = [
+        GeneratedPlanWorkout(
+          name: 'Push',
+          exercises: const [
+            GeneratedPlanExercise(
+              exerciseSlug: 'exercicio-que-nao-existe',
+              targetSets: 3,
+              targetReps: 10,
+            ),
+          ],
+        ),
+      ];
+
+      appRouter.go('/plan-builder/preview', extra: workouts);
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [appDatabaseProvider.overrideWithValue(db)],
+          child: MaterialApp.router(routerConfig: appRouter),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Importar para meus treinos'));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text(
+          'O plano gerado incluiu exercícios que não reconhecemos. '
+          'Tente novamente.',
+        ),
+        findsOneWidget,
+      );
+      // The raw exception's own toString() would contain the class name
+      // and the slug list in parentheses — confirm that shape never
+      // reaches the UI.
+      expect(
+        find.textContaining('UnresolvedPlanExercisesException'),
+        findsNothing,
+      );
+
+      await tester.pumpWidget(const SizedBox());
+      await tester.pump(const Duration(milliseconds: 50));
+    },
+  );
 }

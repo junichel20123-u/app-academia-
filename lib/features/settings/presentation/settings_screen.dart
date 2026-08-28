@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_spacing.dart';
 import '../../../core/database/enums.dart';
+import '../../video_generation/application/exercise_video_providers.dart';
 import '../../video_generation/data/provider_registry.dart';
 import '../application/user_settings_providers.dart';
 
@@ -24,11 +25,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   String? _testResultMessage;
   AppThemeMode _themeMode = AppThemeMode.dark;
   bool _aiPlanBuilderUnlocked = false;
+  int? _cacheSizeBytes;
+  bool _clearingCache = false;
 
   @override
   void initState() {
     super.initState();
     _loadInitial();
+    _loadCacheSize();
   }
 
   @override
@@ -64,6 +68,49 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     await ref
         .read(userSettingsRepositoryProvider)
         .setAiPlanBuilderPremiumUnlocked(unlocked);
+  }
+
+  Future<void> _loadCacheSize() async {
+    final bytes = await ref
+        .read(exerciseVideosRepositoryProvider)
+        .cacheSizeBytes();
+    if (!mounted) return;
+    setState(() => _cacheSizeBytes = bytes);
+  }
+
+  Future<void> _clearVideoCache() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Limpar cache de vídeos?'),
+        content: const Text(
+          'Os vídeos baixados serão apagados. Eles podem ser baixados de '
+          'novo (vídeo de estoque) ou gerados de novo (IA) quando você '
+          'abrir um exercício.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text('Limpar'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+
+    setState(() => _clearingCache = true);
+    await ref.read(exerciseVideosRepositoryProvider).clearVideoCache();
+    if (!mounted) return;
+    setState(() {
+      _cacheSizeBytes = 0;
+      _clearingCache = false;
+    });
+    ScaffoldMessenger.of(context)
+        .showSnackBar(const SnackBar(content: Text('Cache de vídeos limpo.')));
   }
 
   void _testConnection() {
@@ -202,6 +249,29 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   ),
                   value: _aiPlanBuilderUnlocked,
                   onChanged: _setAiPlanBuilderUnlocked,
+                ),
+                const SizedBox(height: 24),
+                Text(
+                  'Cache de vídeos',
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  _cacheSizeBytes == null
+                      ? 'Calculando...'
+                      : 'Tamanho atual: '
+                            '${(_cacheSizeBytes! / (1024 * 1024)).toStringAsFixed(1)} MB',
+                ),
+                const SizedBox(height: 8),
+                OutlinedButton(
+                  onPressed: _clearingCache ? null : _clearVideoCache,
+                  child: _clearingCache
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Text('Limpar cache de vídeos'),
                 ),
               ],
             ),

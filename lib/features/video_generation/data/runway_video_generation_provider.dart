@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 
 import '../../../core/database/app_database.dart';
 import '../domain/video_generation_provider.dart';
+import 'dio_error_message.dart';
 
 const _baseUrl = 'https://api.dev.runwayml.com/v1';
 const _apiVersion = '2024-11-06';
@@ -53,14 +54,12 @@ String buildRunwayImagePrompt(Exercise exercise) {
 }
 
 /// Turns a Dio error into a user-facing message, preferring whatever the
-/// API's own error payload says over a generic status-code message.
-String describeRunwayError(DioException error) {
-  final data = error.response?.data;
-  final message = data is Map ? (data['error'] ?? data['message']) : null;
-  if (message is String && message.isNotEmpty) return message;
-  return 'Erro ao comunicar com a Runway '
-      '(${error.response?.statusCode ?? error.type}).';
-}
+/// API's own error payload says over a generic status-code message. Thin
+/// wrapper over the shared [describeDioError] — kept as a named function
+/// (rather than inlining the call everywhere) since it's already exported
+/// and unit-tested by name.
+String describeRunwayError(DioException error) =>
+    describeDioError(error, genericMessage: 'Erro ao comunicar com a Runway');
 
 /// Real text-to-video vendor: chains Runway's `text_to_image` (turns the
 /// exercise name/instructions into a still image) and `image_to_video`
@@ -191,11 +190,15 @@ class RunwayVideoGenerationProvider implements VideoGenerationProvider {
     required String resultUrl,
     Map<String, String>? credentials,
   }) async {
-    final response = await _dio.get<List<int>>(
-      resultUrl,
-      options: Options(responseType: ResponseType.bytes),
-    );
-    return response.data!;
+    try {
+      final response = await _dio.get<List<int>>(
+        resultUrl,
+        options: Options(responseType: ResponseType.bytes),
+      );
+      return response.data!;
+    } on DioException catch (e) {
+      throw StateError(describeRunwayError(e));
+    }
   }
 
   @override

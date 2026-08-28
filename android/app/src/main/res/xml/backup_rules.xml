@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Legacy (API 23-30) backup rules — same policy as
+     data_extraction_rules.xml, kept for the same reason: inert while
+     android:allowBackup is false, versioned backstop if it's ever
+     re-enabled. -->
+<full-backup-content>
+    <exclude domain="database" />
+    <exclude domain="file" path="exercise_videos/" />
+</full-backup-content>

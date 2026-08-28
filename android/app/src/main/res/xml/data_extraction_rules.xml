@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Android 12+ backup/transfer rules. Inert while android:allowBackup is
+     false (see AndroidManifest.xml) — kept as a versioned backstop so that
+     if backup is ever re-enabled, the personal-data database and cached
+     exercise videos stay excluded rather than defaulting to "back up
+     everything". -->
+<data-extraction-rules>
+    <cloud-backup disableIfNoEncryptionCapability="false">
+        <exclude domain="database" />
+        <exclude domain="file" path="exercise_videos/" />
+    </cloud-backup>
+    <device-transfer>
+        <exclude domain="database" />
+        <exclude domain="file" path="exercise_videos/" />
+    </device-transfer>
+</data-extraction-rules>

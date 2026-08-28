@@ -1,6 +1,7 @@
 import 'package:drift/drift.dart';
 
 import '../app_database.dart';
+import '../enums.dart';
 import '../tables/exercise_videos_table.dart';
 import '../tables/exercises_table.dart';
 
@@ -58,4 +59,41 @@ class ExercisesDao extends DatabaseAccessor<AppDatabase>
 
   Future<bool> updateVideoAttempt(ExerciseVideo entry) =>
       update(exerciseVideos).replace(entry);
+
+  /// Every cached video file's path still referenced by a DB row — the
+  /// "known good" set an orphan sweep keeps, deleting anything on disk
+  /// that isn't in this list.
+  Future<List<String>> getAllLocalFilePaths() async {
+    final rows = await (select(
+      exerciseVideos,
+    )..where((t) => t.localFilePath.isNotNull())).get();
+    return [for (final row in rows) row.localFilePath!];
+  }
+
+  /// Ready videos with a cached file, oldest-completed first — the order a
+  /// cache-size cap evicts in.
+  Future<List<ExerciseVideo>> getReadyVideosOldestFirst() {
+    final query = select(exerciseVideos)
+      ..where(
+        (t) =>
+            t.status.equalsValue(ExerciseVideoStatus.ready) &
+            t.localFilePath.isNotNull(),
+      )
+      ..orderBy([(t) => OrderingTerm.asc(t.completedAt)]);
+    return query.get();
+  }
+
+  /// Resets every row that still points at a cached file back to `idle`
+  /// with no path — used by "clear video cache", always paired with
+  /// actually deleting those files (see `ExerciseVideosRepository`).
+  Future<void> clearAllVideoCacheRows() {
+    return (update(
+      exerciseVideos,
+    )..where((t) => t.localFilePath.isNotNull())).write(
+      const ExerciseVideosCompanion(
+        localFilePath: Value(null),
+        status: Value(ExerciseVideoStatus.idle),
+      ),
+    );
+  }
 }

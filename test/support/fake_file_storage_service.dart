@@ -4,6 +4,7 @@ import 'package:app_academia/core/storage/file_storage_service.dart';
 /// channel, unavailable in tests) when exercising video-generation code.
 class FakeFileStorageService extends FileStorageService {
   final List<String> deletedPaths = [];
+  bool cacheCleared = false;
   int _counter = 0;
 
   @override
@@ -18,4 +19,15 @@ class FakeFileStorageService extends FileStorageService {
   Future<void> deleteIfExists(String path) async {
     deletedPaths.add(path);
   }
+
+  @override
+  Future<int> cacheSizeBytes() async => 0;
+
+  @override
+  Future<void> clearCache() async {
+    cacheCleared = true;
+  }
+
+  @override
+  Future<void> sweepOrphans(Set<String> knownPaths) async {}
 }

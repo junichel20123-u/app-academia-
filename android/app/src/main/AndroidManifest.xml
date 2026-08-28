@@ -18,7 +18,19 @@
     <application
         android:label="app_academia"
         android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher">
+        android:icon="@mipmap/ic_launcher"
+        android:allowBackup="false"
+        android:fullBackupContent="@xml/backup_rules"
+        android:dataExtractionRules="@xml/data_extraction_rules">
+        <!-- allowBackup="false" is what actually disables Android Auto
+             Backup/adb backup/device-to-device transfer — this app's local
+             database holds personal fitness/health data (body weight, set-
+             by-set workout history, cardio/GPS distances) with no password
+             gate of its own, so it must never leave the device via backup.
+             The two xml rule files below are inert while allowBackup is
+             false, but kept as a versioned backstop: if allowBackup is ever
+             flipped back to true for an unrelated reason, these rules take
+             over automatically instead of silently backing up everything. -->
         <activity
             android:name=".MainActivity"
             android:exported="true"

@@ -6,6 +6,7 @@ import '../../../core/database/app_database.dart';
 import '../../exercises/application/exercises_providers.dart';
 import '../application/ai_plan_builder_providers.dart';
 import '../domain/generated_plan.dart';
+import 'generation_error_message.dart';
 
 class PlanPreviewScreen extends ConsumerStatefulWidget {
   const PlanPreviewScreen({super.key, required this.workouts});
@@ -48,9 +49,13 @@ class _PlanPreviewScreenState extends ConsumerState<PlanPreviewScreen> {
       context.go('/workouts');
     } catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Falha ao importar o plano: $error')),
-      );
+      // Never interpolate the raw exception into the UI — even though
+      // importPlan() is purely local/offline today, this keeps the same
+      // sanitized-message convention the AI generation screen already
+      // uses, so this stays safe if importPlan() ever gains a network call.
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(describeGenerationError(error))));
     } finally {
       if (mounted) setState(() => _isImporting = false);
     }
