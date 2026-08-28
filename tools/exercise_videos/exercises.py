@@ -96,7 +96,11 @@ EXERCISES = [
     ("desenvolvimento-maquina", "Desenvolvimento máquina", "shoulder press machine"),
     ("triceps-maquina", "Tríceps máquina", "tricep extension machine"),
     ("rosca-scott-na-maquina", "Rosca scott na máquina", "preacher curl machine"),
-    ("abdominal-maquina", "Abdominal máquina", "ab crunch machine"),
+    (
+        "abdominal-maquina",
+        "Abdominal máquina",
+        "seated abdominal crunch machine gym equipment",
+    ),
     ("bicicleta-ergometrica", "Bicicleta ergométrica", "stationary bike cycling"),
     ("eliptico", "Elíptico", "elliptical machine cardio"),
     ("remo-ergometrico", "Remo ergométrico", "rowing machine cardio"),
@@ -111,7 +115,11 @@ EXERCISES = [
         "Tríceps francês na polia",
         "cable overhead tricep extension",
     ),
-    ("abdominal-na-polia-alta", "Abdominal na polia alta", "cable crunch"),
+    (
+        "abdominal-na-polia-alta",
+        "Abdominal na polia alta",
+        "kneeling cable crunch rope gym",
+    ),
     ("coice-no-cabo-gluteos", "Coice no cabo (glúteos)", "cable kickback glutes"),
     # exercisesAddedInSchemaV6
     ("abducao-de-quadril-na-polia", "Abdução de quadril na polia", "cable hip abduction"),

@@ -12,10 +12,19 @@ agent sandbox that wrote this script):
 
 Re-running is safe: any exercise whose output folder already has a
 candidate_*.mp4 is skipped, so an interrupted run can just be restarted.
+
+To redo the search for specific exercises only (e.g. the query in
+exercises.py was tweaked because the results were off-target), pass their
+slugs — this deletes that exercise's old candidates first, so it always
+re-searches instead of being skipped:
+
+    python search_and_download.py --slugs abdominal-maquina,abdominal-na-polia-alta
 """
 
+import argparse
 import json
 import os
+import shutil
 import sys
 import time
 from pathlib import Path
@@ -68,23 +77,57 @@ def search_exercise(query: str, api_key: str) -> list[dict]:
     return response.json().get("videos", [])
 
 
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--slugs",
+        help=(
+            "Comma-separated exercise slugs to re-search, deleting their "
+            "existing candidates first. Omit to process every exercise "
+            "(skipping ones already downloaded)."
+        ),
+    )
+    return parser.parse_args()
+
+
 def main() -> None:
+    args = parse_args()
+    requested_slugs = (
+        {s.strip() for s in args.slugs.split(",") if s.strip()}
+        if args.slugs
+        else None
+    )
+
     api_key = os.environ.get("PEXELS_API_KEY")
     if not api_key:
         print("Erro: defina a variável de ambiente PEXELS_API_KEY antes de rodar.")
         print("Gere uma chave grátis em https://www.pexels.com/api/")
         sys.exit(1)
 
+    exercises = EXERCISES
+    if requested_slugs is not None:
+        known_slugs = {slug for slug, _, _ in EXERCISES}
+        unknown = requested_slugs - known_slugs
+        if unknown:
+            print(f"Aviso: slug(s) desconhecido(s) ignorado(s): {', '.join(sorted(unknown))}")
+        exercises = [e for e in EXERCISES if e[0] in requested_slugs]
+        if not exercises:
+            print("Nenhum slug válido em --slugs. Nada a fazer.")
+            sys.exit(1)
+
     OUTPUT_DIR.mkdir(exist_ok=True)
     no_results_path = OUTPUT_DIR / "_sem_resultado.txt"
     no_results: list[str] = []
 
-    total = len(EXERCISES)
-    for index, (slug, pt_name, query) in enumerate(EXERCISES, start=1):
+    total = len(exercises)
+    for index, (slug, pt_name, query) in enumerate(exercises, start=1):
         exercise_dir = OUTPUT_DIR / slug
+
+        if requested_slugs is not None and exercise_dir.exists():
+            shutil.rmtree(exercise_dir)
         exercise_dir.mkdir(exist_ok=True)
 
-        if already_downloaded(exercise_dir):
+        if requested_slugs is None and already_downloaded(exercise_dir):
             print(f"[{index}/{total}] {slug}: já baixado, pulando.")
             continue
 
@@ -138,6 +181,19 @@ def main() -> None:
 
         print(f"  {downloaded} candidato(s) baixado(s).")
         time.sleep(PAUSE_BETWEEN_EXERCISES_SECONDS)
+
+    if requested_slugs is not None:
+        # Partial (--slugs) run: keep any pre-existing lines for exercises
+        # that weren't part of this run, only replacing/adding lines for
+        # the ones just re-searched.
+        previous_lines = []
+        if no_results_path.exists():
+            previous_lines = [
+                line
+                for line in no_results_path.read_text(encoding="utf-8").splitlines()
+                if line.split(":", 1)[0] not in requested_slugs
+            ]
+        no_results = previous_lines + no_results
 
     if no_results:
         no_results_path.write_text("\n".join(no_results) + "\n", encoding="utf-8")
