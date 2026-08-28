@@ -242,10 +242,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 ),
                 SwitchListTile(
                   contentPadding: EdgeInsets.zero,
-                  title: const Text('Montador de plano por IA'),
+                  title: const Text('Recursos de IA (Montador de plano + Coach)'),
                   subtitle: const Text(
-                    'Libera o recurso premium sem pagamento — não há '
-                    'cobrança real implementada ainda, isto é só para teste.',
+                    'Libera os dois recursos premium de IA sem pagamento — '
+                    'não há cobrança real implementada ainda, isto é só '
+                    'para teste.',
                   ),
                   value: _aiPlanBuilderUnlocked,
                   onChanged: _setAiPlanBuilderUnlocked,

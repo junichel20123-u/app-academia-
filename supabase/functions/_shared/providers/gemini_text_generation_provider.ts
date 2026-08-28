@@ -1,8 +1,10 @@
 import {
+  ChatMessage,
   StructuredGenerationRequest,
   TextGenerationError,
   TextGenerationErrorKind,
   TextGenerationProvider,
+  TextGenerationRequest,
 } from "./text_generation_provider.ts";
 
 // Plain REST calls, not the `@google/genai` npm SDK: that SDK pulls in
@@ -34,6 +36,11 @@ const DEFAULT_TIMEOUT_MS = 30_000;
 // trading away variety it doesn't need for a slightly more predictable
 // plan run to run.
 const DEFAULT_TEMPERATURE = 0.4;
+// Higher than DEFAULT_TEMPERATURE: the ai-coach chat endpoint is open-ended
+// conversation (fitness/nutrition Q&A), not constrained structured
+// generation against a closed list and numeric bounds — a bit more warmth
+// reads as more natural coaching without the reply losing coherence.
+const DEFAULT_CHAT_TEMPERATURE = 0.7;
 
 /**
  * Maps a REST error (an HTTP status code, from either a non-OK response or
@@ -69,6 +76,40 @@ export class GeminiTextGenerationProvider implements TextGenerationProvider {
   async generateStructured(
     request: StructuredGenerationRequest,
   ): Promise<unknown> {
+    const text = await this._generateContentText({
+      contents: [{ parts: [{ text: request.userPrompt }] }],
+      systemInstruction: { parts: [{ text: request.systemPrompt }] },
+      generationConfig: {
+        responseMimeType: "application/json",
+        responseJsonSchema: request.jsonSchema,
+        temperature: DEFAULT_TEMPERATURE,
+      },
+    });
+
+    try {
+      return JSON.parse(text);
+    } catch (error) {
+      throw new TextGenerationError(
+        "invalid_response",
+        `Gemini's text was not valid JSON: ${error}`,
+        error,
+      );
+    }
+  }
+
+  async generateText(request: TextGenerationRequest): Promise<string> {
+    return await this._generateContentText({
+      contents: mapMessagesToContents(request.messages),
+      systemInstruction: { parts: [{ text: request.systemPrompt }] },
+      generationConfig: { temperature: DEFAULT_CHAT_TEMPERATURE },
+    });
+  }
+
+  /** Shared `:generateContent` call + response-text extraction behind
+   * `generateStructured` and `generateText` — the only difference between
+   * the two is what each does with the extracted text afterwards (parse as
+   * JSON vs. return as-is). */
+  private async _generateContentText(body: unknown): Promise<string> {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), this.timeoutMs);
 
@@ -82,15 +123,7 @@ export class GeminiTextGenerationProvider implements TextGenerationProvider {
             "Content-Type": "application/json",
             "x-goog-api-key": this.apiKey,
           },
-          body: JSON.stringify({
-            contents: [{ parts: [{ text: request.userPrompt }] }],
-            systemInstruction: { parts: [{ text: request.systemPrompt }] },
-            generationConfig: {
-              responseMimeType: "application/json",
-              responseJsonSchema: request.jsonSchema,
-              temperature: DEFAULT_TEMPERATURE,
-            },
-          }),
+          body: JSON.stringify(body),
           signal: controller.signal,
         },
       );
@@ -105,10 +138,10 @@ export class GeminiTextGenerationProvider implements TextGenerationProvider {
     }
 
     if (!response.ok) {
-      const body = await response.text().catch(() => "");
+      const responseBody = await response.text().catch(() => "");
       throw new TextGenerationError(
         mapGeminiError(response.status),
-        `Gemini returned HTTP ${response.status}: ${body}`,
+        `Gemini returned HTTP ${response.status}: ${responseBody}`,
       );
     }
 
@@ -127,17 +160,22 @@ export class GeminiTextGenerationProvider implements TextGenerationProvider {
         "Gemini returned no text in its response.",
       );
     }
-
-    try {
-      return JSON.parse(text);
-    } catch (error) {
-      throw new TextGenerationError(
-        "invalid_response",
-        `Gemini's text was not valid JSON: ${error}`,
-        error,
-      );
-    }
+    return text;
   }
+}
+
+/**
+ * Maps a chat history to Gemini's `contents` request field (`role`/`parts`).
+ * A pure function, tested separately from the network call — mirrors
+ * `extractResponseText` below.
+ */
+export function mapMessagesToContents(
+  messages: ChatMessage[],
+): Array<{ role: string; parts: Array<{ text: string }> }> {
+  return messages.map((message) => ({
+    role: message.role,
+    parts: [{ text: message.content }],
+  }));
 }
 
 /**

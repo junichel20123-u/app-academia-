@@ -34,6 +34,22 @@ export interface StructuredGenerationRequest {
   jsonSchema: unknown;
 }
 
+/** One turn of a chat-style conversation. `"model"` (not `"assistant"`) to
+ * match Gemini's own role naming directly — the ai-coach endpoint maps its
+ * public `"assistant"` role to this at the boundary, so this provider-facing
+ * type never has to know about any one endpoint's public API shape. */
+export interface ChatMessage {
+  role: "user" | "model";
+  content: string;
+}
+
+export interface TextGenerationRequest {
+  systemPrompt: string;
+  /** Full conversation so far, in chronological order, ending with the
+   * latest `"user"` turn. */
+  messages: ChatMessage[];
+}
+
 export interface TextGenerationProvider {
   readonly id: string;
   /**
@@ -44,4 +60,11 @@ export interface TextGenerationProvider {
    * on any request/response/network failure.
    */
   generateStructured(request: StructuredGenerationRequest): Promise<unknown>;
+
+  /**
+   * Free-form conversational reply (no response schema) — for the
+   * ai-coach chat endpoint, which produces prose, not structured data.
+   * Throws [TextGenerationError] on any request/response/network failure.
+   */
+  generateText(request: TextGenerationRequest): Promise<string>;
 }
