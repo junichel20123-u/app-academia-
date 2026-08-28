@@ -56,9 +56,8 @@ class AiCoachRepository {
     final completedSessions = await _db.sessionsDao.getCompletedSessions();
     final activeCutoff = DateTime.now().subtract(const Duration(days: 14));
     final sedentary = !completedSessions.any(
-      (session) => (session.completedAt ?? session.startedAt).isAfter(
-        activeCutoff,
-      ),
+      (session) =>
+          (session.completedAt ?? session.startedAt).isAfter(activeCutoff),
     );
 
     final weighIns = await _db.weighInsDao.watchAllWeighIns().first;
@@ -136,9 +135,7 @@ class AiCoachRepository {
         'messages': [
           for (final message in history)
             {
-              'role': message.role == ChatRole.assistant
-                  ? 'assistant'
-                  : 'user',
+              'role': message.role == ChatRole.assistant ? 'assistant' : 'user',
               'content': message.content,
             },
         ],

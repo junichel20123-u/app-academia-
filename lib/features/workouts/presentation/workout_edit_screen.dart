@@ -102,10 +102,8 @@ class _WorkoutEditScreenState extends ConsumerState<WorkoutEditScreen> {
             IconButton(
               icon: const Icon(Icons.auto_awesome),
               tooltip: 'Ajustar com IA',
-              onPressed: () => context.push(
-                '/coach/adjust',
-                extra: currentWorkout.id,
-              ),
+              onPressed: () =>
+                  context.push('/coach/adjust', extra: currentWorkout.id),
             ),
         ],
       ),

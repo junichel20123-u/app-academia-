@@ -125,7 +125,8 @@ class _AiWorkoutAdjustScreenState extends ConsumerState<AiWorkoutAdjustScreen> {
                       child: Text(workout.name),
                     ),
                 ],
-                onChanged: (value) => setState(() => _selectedWorkoutId = value),
+                onChanged: (value) =>
+                    setState(() => _selectedWorkoutId = value),
               ),
               const SizedBox(height: 16),
               FutureBuilder<CoachContext>(
@@ -208,10 +209,7 @@ class _AiWorkoutAdjustScreenState extends ConsumerState<AiWorkoutAdjustScreen> {
                   if (coachContext == null ||
                       selectedWorkoutId == null ||
                       _isGenerating) {
-                    return FilledButton(
-                      onPressed: null,
-                      child: buttonChild,
-                    );
+                    return FilledButton(onPressed: null, child: buttonChild);
                   }
                   return FilledButton(
                     onPressed: () => _generate(coachContext),

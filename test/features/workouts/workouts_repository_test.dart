@@ -115,21 +115,24 @@ void main() {
       expect(entries.first.targetReps, 12);
     });
 
-    test('throws UnresolvedPlanExercisesException for an unknown slug', () async {
-      final workoutId = await repo.createWorkout(name: 'Treino ajustável');
+    test(
+      'throws UnresolvedPlanExercisesException for an unknown slug',
+      () async {
+        final workoutId = await repo.createWorkout(name: 'Treino ajustável');
 
-      expect(
-        () => repo.applyAdjustedExercises(
-          workoutId: workoutId,
-          exercises: const [
-            GeneratedPlanExercise(
-              exerciseSlug: 'nao-existe-neste-install',
-              targetSets: 3,
-            ),
-          ],
-        ),
-        throwsA(isA<UnresolvedPlanExercisesException>()),
-      );
-    });
+        expect(
+          () => repo.applyAdjustedExercises(
+            workoutId: workoutId,
+            exercises: const [
+              GeneratedPlanExercise(
+                exerciseSlug: 'nao-existe-neste-install',
+                targetSets: 3,
+              ),
+            ],
+          ),
+          throwsA(isA<UnresolvedPlanExercisesException>()),
+        );
+      },
+    );
   });
 }

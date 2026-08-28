@@ -62,9 +62,8 @@ class _WorkoutAdjustmentPreviewScreenState
             exercises: widget.args.proposal.exercises,
           );
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Treino atualizado.')),
-      );
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('Treino atualizado.')));
       context.go('/workouts/${widget.args.workoutId}');
     } catch (error) {
       if (!mounted) return;

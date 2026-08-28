@@ -4,7 +4,10 @@ import 'package:flutter_test/flutter_test.dart';
 void main() {
   group('parseChatReply', () {
     test('extracts the reply string', () {
-      expect(parseChatReply({'reply': 'Beba mais água hoje.'}), 'Beba mais água hoje.');
+      expect(
+        parseChatReply({'reply': 'Beba mais água hoje.'}),
+        'Beba mais água hoje.',
+      );
     });
 
     test('throws FormatException when reply is missing', () {

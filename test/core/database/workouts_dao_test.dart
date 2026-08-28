@@ -130,58 +130,12 @@ void main() {
   );
 
   group('replaceWorkoutExercises', () {
-    test('replaces the exercise list and leaves other workouts untouched', () async {
-      final exerciseId = await firstExerciseId();
-      final workoutId = await db.workoutsDao.createWorkoutWithExercises(
-        name: 'Treino a ajustar',
-        entries: [
-          WorkoutExerciseEntry(
-            exerciseId: exerciseId,
-            orderIndex: 0,
-            targetSets: 3,
-            targetReps: 10,
-          ),
-        ],
-      );
-      final otherWorkoutId = await db.workoutsDao.createWorkoutWithExercises(
-        name: 'Outro treino',
-        entries: [
-          WorkoutExerciseEntry(
-            exerciseId: exerciseId,
-            orderIndex: 0,
-            targetSets: 5,
-            targetReps: 5,
-          ),
-        ],
-      );
-
-      await db.workoutsDao.replaceWorkoutExercises(workoutId, [
-        WorkoutExerciseEntry(
-          exerciseId: exerciseId,
-          orderIndex: 0,
-          targetSets: 4,
-          targetReps: 12,
-        ),
-      ]);
-
-      final entries = await db.workoutsDao.getExercisesForWorkout(workoutId);
-      expect(entries, hasLength(1));
-      expect(entries.first.targetSets, 4);
-      expect(entries.first.targetReps, 12);
-
-      final otherEntries = await db.workoutsDao.getExercisesForWorkout(
-        otherWorkoutId,
-      );
-      expect(otherEntries, hasLength(1));
-      expect(otherEntries.first.targetSets, 5);
-    });
-
     test(
-      'a logged set that referenced the old row keeps its history, just unlinked',
+      'replaces the exercise list and leaves other workouts untouched',
       () async {
         final exerciseId = await firstExerciseId();
         final workoutId = await db.workoutsDao.createWorkoutWithExercises(
-          name: 'Treino com histórico',
+          name: 'Treino a ajustar',
           entries: [
             WorkoutExerciseEntry(
               exerciseId: exerciseId,
@@ -191,24 +145,16 @@ void main() {
             ),
           ],
         );
-        final oldEntry =
-            (await db.workoutsDao.getExercisesForWorkout(workoutId)).single;
-
-        final sessionId = await db.sessionsDao.startSession(
-          WorkoutSessionsCompanion.insert(
-            workoutId: Value(workoutId),
-            name: 'Sessão',
-            status: WorkoutSessionStatus.completed,
-          ),
-        );
-        final loggedSetId = await db.sessionsDao.logSet(
-          LoggedSetsCompanion.insert(
-            sessionId: sessionId,
-            exerciseId: exerciseId,
-            workoutExerciseId: Value(oldEntry.id),
-            setNumber: 1,
-            weight: const Value(50.0),
-          ),
+        final otherWorkoutId = await db.workoutsDao.createWorkoutWithExercises(
+          name: 'Outro treino',
+          entries: [
+            WorkoutExerciseEntry(
+              exerciseId: exerciseId,
+              orderIndex: 0,
+              targetSets: 5,
+              targetReps: 5,
+            ),
+          ],
         );
 
         await db.workoutsDao.replaceWorkoutExercises(workoutId, [
@@ -216,15 +162,69 @@ void main() {
             exerciseId: exerciseId,
             orderIndex: 0,
             targetSets: 4,
-            targetReps: 8,
+            targetReps: 12,
           ),
         ]);
 
-        final loggedSets = await db.sessionsDao.getSetsForSession(sessionId);
-        final loggedSet = loggedSets.firstWhere((s) => s.id == loggedSetId);
-        expect(loggedSet.workoutExerciseId, isNull);
-        expect(loggedSet.weight, 50.0);
+        final entries = await db.workoutsDao.getExercisesForWorkout(workoutId);
+        expect(entries, hasLength(1));
+        expect(entries.first.targetSets, 4);
+        expect(entries.first.targetReps, 12);
+
+        final otherEntries = await db.workoutsDao.getExercisesForWorkout(
+          otherWorkoutId,
+        );
+        expect(otherEntries, hasLength(1));
+        expect(otherEntries.first.targetSets, 5);
       },
     );
+
+    test('a logged set that referenced the old row keeps its history, just unlinked', () async {
+      final exerciseId = await firstExerciseId();
+      final workoutId = await db.workoutsDao.createWorkoutWithExercises(
+        name: 'Treino com histórico',
+        entries: [
+          WorkoutExerciseEntry(
+            exerciseId: exerciseId,
+            orderIndex: 0,
+            targetSets: 3,
+            targetReps: 10,
+          ),
+        ],
+      );
+      final oldEntry = (await db.workoutsDao.getExercisesForWorkout(workoutId))
+          .single;
+
+      final sessionId = await db.sessionsDao.startSession(
+        WorkoutSessionsCompanion.insert(
+          workoutId: Value(workoutId),
+          name: 'Sessão',
+          status: WorkoutSessionStatus.completed,
+        ),
+      );
+      final loggedSetId = await db.sessionsDao.logSet(
+        LoggedSetsCompanion.insert(
+          sessionId: sessionId,
+          exerciseId: exerciseId,
+          workoutExerciseId: Value(oldEntry.id),
+          setNumber: 1,
+          weight: const Value(50.0),
+        ),
+      );
+
+      await db.workoutsDao.replaceWorkoutExercises(workoutId, [
+        WorkoutExerciseEntry(
+          exerciseId: exerciseId,
+          orderIndex: 0,
+          targetSets: 4,
+          targetReps: 8,
+        ),
+      ]);
+
+      final loggedSets = await db.sessionsDao.getSetsForSession(sessionId);
+      final loggedSet = loggedSets.firstWhere((s) => s.id == loggedSetId);
+      expect(loggedSet.workoutExerciseId, isNull);
+      expect(loggedSet.weight, 50.0);
+    });
   });
 }

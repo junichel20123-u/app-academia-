@@ -71,9 +71,8 @@ class _AiCoachScreenState extends ConsumerState<AiCoachScreen> {
     ref.listen(aiCoachControllerProvider, (previous, next) {
       if (next.errorMessage != null &&
           next.errorMessage != previous?.errorMessage) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(next.errorMessage!)));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(next.errorMessage!)));
       }
     });
 
@@ -234,7 +233,9 @@ class _MessageBubble extends StatelessWidget {
           maxWidth: MediaQuery.of(context).size.width * 0.78,
         ),
         decoration: BoxDecoration(
-          color: isUser ? colorScheme.primary : colorScheme.surfaceContainerHigh,
+          color: isUser
+              ? colorScheme.primary
+              : colorScheme.surfaceContainerHigh,
           borderRadius: BorderRadius.circular(14),
         ),
         child: Text(

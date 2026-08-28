@@ -242,7 +242,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 ),
                 SwitchListTile(
                   contentPadding: EdgeInsets.zero,
-                  title: const Text('Recursos de IA (Montador de plano + Coach)'),
+                  title: const Text(
+                    'Recursos de IA (Montador de plano + Coach)',
+                  ),
                   subtitle: const Text(
                     'Libera os dois recursos premium de IA sem pagamento — '
                     'não há cobrança real implementada ainda, isto é só '

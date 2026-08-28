@@ -2,7 +2,7 @@ import 'package:app_academia/core/database/app_database.dart';
 import 'package:app_academia/core/database/enums.dart';
 import 'package:app_academia/features/ai_coach/data/ai_coach_repository.dart';
 import 'package:app_academia/features/ai_coach/domain/coach_context.dart';
-import 'package:drift/drift.dart';
+import 'package:drift/drift.dart' hide isNull, isNotNull;
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../core/database/test_database.dart';
@@ -21,57 +21,72 @@ void main() {
     expect(await repository.isPremiumUnlocked(), isFalse);
 
     await db.userSettingsDao.saveSettings(
-      const UserSettingsTableCompanion(aiPlanBuilderPremiumUnlocked: Value(true)),
+      const UserSettingsTableCompanion(
+        aiPlanBuilderPremiumUnlocked: Value(true),
+      ),
     );
 
     expect(await repository.isPremiumUnlocked(), isTrue);
   });
 
   group('buildContext', () {
-    test('flags sedentary with no completed sessions and no weight data', () async {
-      final context = await repository.buildContext(
-        goal: 'hipertrofia',
-        experienceLevel: 'beginner',
-      );
+    test(
+      'flags sedentary with no completed sessions and no weight data',
+      () async {
+        final context = await repository.buildContext(
+          goal: 'hipertrofia',
+          experienceLevel: 'beginner',
+        );
 
-      expect(context.goal, 'hipertrofia');
-      expect(context.experienceLevel, 'beginner');
-      expect(context.sedentary, isTrue);
-      expect(context.latestWeightKg, isNull);
-      expect(context.weightTrend, isNull);
-      expect(context.summaryText, contains('Sem treinos completados'));
-    });
+        expect(context.goal, 'hipertrofia');
+        expect(context.experienceLevel, 'beginner');
+        expect(context.sedentary, isTrue);
+        expect(context.latestWeightKg, isNull);
+        expect(context.weightTrend, isNull);
+        expect(context.summaryText, contains('Sem treinos completados'));
+      },
+    );
 
-    test('is not sedentary with a session completed in the last 14 days', () async {
-      await db.sessionsDao.startSession(
-        WorkoutSessionsCompanion.insert(
-          name: 'Treino recente',
-          status: WorkoutSessionStatus.completed,
-          startedAt: Value(DateTime.now().subtract(const Duration(days: 2))),
-          completedAt: Value(DateTime.now().subtract(const Duration(days: 2))),
-        ),
-      );
+    test(
+      'is not sedentary with a session completed in the last 14 days',
+      () async {
+        await db.sessionsDao.startSession(
+          WorkoutSessionsCompanion.insert(
+            name: 'Treino recente',
+            status: WorkoutSessionStatus.completed,
+            startedAt: Value(DateTime.now().subtract(const Duration(days: 2))),
+            completedAt: Value(
+              DateTime.now().subtract(const Duration(days: 2)),
+            ),
+          ),
+        );
 
-      final context = await repository.buildContext();
+        final context = await repository.buildContext();
 
-      expect(context.sedentary, isFalse);
-      expect(context.summaryText, contains('regularidade'));
-    });
+        expect(context.sedentary, isFalse);
+        expect(context.summaryText, contains('regularidade'));
+      },
+    );
 
-    test('stays sedentary when the only completed session is older than 14 days', () async {
-      await db.sessionsDao.startSession(
-        WorkoutSessionsCompanion.insert(
-          name: 'Treino antigo',
-          status: WorkoutSessionStatus.completed,
-          startedAt: Value(DateTime.now().subtract(const Duration(days: 40))),
-          completedAt: Value(DateTime.now().subtract(const Duration(days: 40))),
-        ),
-      );
+    test(
+      'stays sedentary when the only completed session is older than 14 days',
+      () async {
+        await db.sessionsDao.startSession(
+          WorkoutSessionsCompanion.insert(
+            name: 'Treino antigo',
+            status: WorkoutSessionStatus.completed,
+            startedAt: Value(DateTime.now().subtract(const Duration(days: 40))),
+            completedAt: Value(
+              DateTime.now().subtract(const Duration(days: 40)),
+            ),
+          ),
+        );
 
-      final context = await repository.buildContext();
+        final context = await repository.buildContext();
 
-      expect(context.sedentary, isTrue);
-    });
+        expect(context.sedentary, isTrue);
+      },
+    );
 
     test('reports a single weigh-in with no trend', () async {
       await db.weighInsDao.insertWeighIn(

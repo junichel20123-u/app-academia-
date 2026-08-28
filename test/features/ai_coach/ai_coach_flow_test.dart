@@ -1,6 +1,7 @@
 import 'package:app_academia/app/router.dart';
 import 'package:app_academia/core/database/app_database.dart';
 import 'package:app_academia/core/providers/database_provider.dart';
+import 'package:drift/drift.dart';
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -22,10 +23,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(
-        find.text('O coach de IA é um recurso premium.'),
-        findsOneWidget,
-      );
+      expect(find.text('O coach de IA é um recurso premium.'), findsOneWidget);
       await tester.tap(find.text('Desbloquear'));
       await tester.pumpAndSettle();
 
@@ -55,7 +53,10 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Coach de IA'), findsOneWidget);
-    expect(find.widgetWithText(TextField, 'Digite sua pergunta...'), findsOneWidget);
+    expect(
+      find.widgetWithText(TextField, 'Digite sua pergunta...'),
+      findsOneWidget,
+    );
 
     await tester.pumpWidget(const SizedBox());
     await tester.pump(const Duration(milliseconds: 50));
