@@ -173,4 +173,22 @@ EXERCISES = [
         "Agachamento com salto",
         "jump squat workout fitness training",
     ),
+    # exercisesAddedInSchemaV10
+    (
+        "encolhimento-de-ombros",
+        "Encolhimento de ombros",
+        "dumbbell shrug trapezius exercise",
+    ),
+    (
+        "abdominal-obliquo-bicicleta",
+        "Abdominal oblíquo (bicicleta)",
+        "bicycle crunch oblique abs",
+    ),
+    ("prancha-lateral", "Prancha lateral", "side plank core exercise"),
+    (
+        "levantamento-terra-romeno",
+        "Levantamento terra romeno",
+        "romanian deadlift barbell",
+    ),
+    ("mesa-flexora", "Mesa flexora", "lying leg curl machine gym"),
 ]

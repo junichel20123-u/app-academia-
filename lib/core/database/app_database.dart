@@ -70,7 +70,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.connection);
 
   @override
-  int get schemaVersion => 9;
+  int get schemaVersion => 10;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -160,6 +160,11 @@ class AppDatabase extends _$AppDatabase {
           await into(exercises).insert(entry, mode: InsertMode.insertOrIgnore);
         }
         await _seedBeginnerWorkouts();
+      }
+      if (from < 10) {
+        for (final entry in exercisesAddedInSchemaV10) {
+          await into(exercises).insert(entry, mode: InsertMode.insertOrIgnore);
+        }
       }
     },
     beforeOpen: (details) async {

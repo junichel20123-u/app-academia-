@@ -136,6 +136,24 @@ final List<ExercisesCompanion> exercisesAddedInSchemaV9 = [
   _e('Agachamento com salto', MuscleGroup.cardio, Equipment.bodyweight),
 ];
 
+/// Added in schema v10 — gaps found by checking a real 5x/week training
+/// plan against the library: nothing worked the traps at all, nothing
+/// worked the obliques directly (the only oblique-ish entry, `Woodchopper
+/// na polia`, is a rotational cable move, not a bodyweight hold/crunch),
+/// the only side plank was the loaded cable variant, and the hip-hinge
+/// family only had the conventional deadlift plus a cable stiff — no
+/// barbell/dumbbell Romanian deadlift. `Mesa flexora` is the lying leg
+/// curl: a different machine from the seated `Cadeira flexora` (v1), which
+/// is why both exist rather than one standing in for the other.
+/// Exported for the same reason as [exercisesAddedInSchemaV4].
+final List<ExercisesCompanion> exercisesAddedInSchemaV10 = [
+  _e('Encolhimento de ombros', MuscleGroup.shoulders, Equipment.dumbbell),
+  _e('Abdominal oblíquo (bicicleta)', MuscleGroup.core, Equipment.bodyweight),
+  _e('Prancha lateral', MuscleGroup.core, Equipment.bodyweight),
+  _e('Levantamento terra romeno', MuscleGroup.legs, Equipment.barbell),
+  _e('Mesa flexora', MuscleGroup.legs, Equipment.machine),
+];
+
 /// Starter exercise library seeded into an empty database on first launch.
 final List<ExercisesCompanion> seedExercises = [
   ..._v1Exercises,
@@ -144,6 +162,7 @@ final List<ExercisesCompanion> seedExercises = [
   ...exercisesAddedInSchemaV6,
   ...exercisesAddedInSchemaV7,
   ...exercisesAddedInSchemaV9,
+  ...exercisesAddedInSchemaV10,
 ];
 
 ExercisesCompanion _e(

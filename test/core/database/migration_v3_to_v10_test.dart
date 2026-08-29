@@ -7,9 +7,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:sqlite3/sqlite3.dart' as sqlite3;
 
 /// Hand-writes a v3-shaped database on disk (the schema before the M22
-/// exercise-library expansion), then opens it with the current, v9-aware
+/// exercise-library expansion), then opens it with the current, v10-aware
 /// `AppDatabase` — since `AppDatabase` always migrates to its current
-/// schemaVersion, this exercises the v4-v7/v9 `onUpgrade` branches in one
+/// schemaVersion, this exercises the v4-v7/v9/v10 `onUpgrade` branches in one
 /// call. Existing installs should gain the new machine/cardio/cable/
 /// bodyweight exercises without losing their existing rows (seeded,
 /// custom, or one that happens to already have a colliding slug).
@@ -26,7 +26,7 @@ void main() {
     await tempDir.delete(recursive: true);
   });
 
-  test('onUpgrade adds the v4-v7/v9 exercises without duplicating or '
+  test('onUpgrade adds the v4-v7/v9/v10 exercises without duplicating or '
       'overwriting existing rows', () async {
     final raw = sqlite3.sqlite3.open(dbFile.path);
     raw.execute('''
@@ -107,7 +107,7 @@ void main() {
     final db = AppDatabase.forTesting(NativeDatabase(dbFile));
     final exercises = await db.exercisesDao.getAllExercises();
 
-    // 3 pre-existing rows + all v4-v7/v9 additions except the one that
+    // 3 pre-existing rows + all v4-v7/v9/v10 additions except the one that
     // collided.
     expect(
       exercises.length,
@@ -116,7 +116,8 @@ void main() {
           exercisesAddedInSchemaV5.length +
           exercisesAddedInSchemaV6.length +
           exercisesAddedInSchemaV7.length +
-          exercisesAddedInSchemaV9.length -
+          exercisesAddedInSchemaV9.length +
+          exercisesAddedInSchemaV10.length -
           1,
     );
 
@@ -132,13 +133,14 @@ void main() {
     expect(collided, hasLength(1));
     expect(collided.single.name, 'Supino máquina (antigo)');
 
-    // Every other v4-v7/v9 exercise made it in.
+    // Every other v4-v7/v9/v10 exercise made it in.
     for (final added in [
       ...exercisesAddedInSchemaV4,
       ...exercisesAddedInSchemaV5,
       ...exercisesAddedInSchemaV6,
       ...exercisesAddedInSchemaV7,
       ...exercisesAddedInSchemaV9,
+      ...exercisesAddedInSchemaV10,
     ]) {
       if (added.slug.value == 'supino-maquina') continue;
       expect(
