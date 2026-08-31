@@ -19,10 +19,13 @@ if [ -z "${GEMINI_KEY:-}" ]; then
   echo "Defina GEMINI_KEY antes de rodar: export GEMINI_KEY=AIzaSy..." >&2
   exit 1
 fi
+# Cada formato de chave so autentica no seu proprio header: as novas
+# "Auth keys" (AQ.Ab...) vao em Authorization: Bearer, as antigas
+# "Standard keys" (AIza...) vao em x-goog-api-key. Trocar os dois da
+# 401 ACCESS_TOKEN_TYPE_UNSUPPORTED por mais valida que a chave seja.
 case "$GEMINI_KEY" in
-  AIza*) ;;
-  *) echo "AVISO: a chave nao comeca com 'AIza'. Um token efemero ('AQ.')" >&2
-     echo "       da 401 ACCESS_TOKEN_TYPE_UNSUPPORTED e expira sozinho." >&2 ;;
+  AQ.*) AUTH_HEADER="Authorization: Bearer $GEMINI_KEY"; FORMATO="AQ (auth key)" ;;
+  *)    AUTH_HEADER="x-goog-api-key: $GEMINI_KEY";       FORMATO="AIza (standard key)" ;;
 esac
 
 MODEL="${GEMINI_MODEL:-gemini-3.6-flash}"
@@ -31,6 +34,7 @@ DIR="$(mktemp -d)"
 trap 'rm -rf "$DIR"' EXIT
 
 echo "modelo: $MODEL"
+echo "formato da chave: $FORMATO"
 echo
 
 # Reproduz o schema que generate-plan/plan.ts gera (5 dias, 78 exercicios).
@@ -81,7 +85,7 @@ i=0
 while IFS= read -r label; do
   out=$(curl -sS -m 90 -X POST "$URL" \
         -H "Content-Type: application/json" \
-        -H "x-goog-api-key: $GEMINI_KEY" \
+        -H "$AUTH_HEADER" \
         -d @"$DIR/body$i.json")
   printf '%s -> %s\n' "$label" "$(printf '%s' "$out" | python3 -c '
 import json, sys

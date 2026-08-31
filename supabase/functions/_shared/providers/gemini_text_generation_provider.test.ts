@@ -1,4 +1,5 @@
 import {
+  buildAuthHeaders,
   extractResponseText,
   GeminiTextGenerationProvider,
   mapGeminiError,
@@ -178,4 +179,28 @@ Deno.test("the legacy thinkingBudget field is never sent", async () => {
     "low",
   );
   assert(!JSON.stringify(body).includes("thinkingBudget"));
+});
+
+// Google is migrating Gemini keys from `AIza...` to `AQ.Ab...`, and each
+// format only authenticates in its own header — sending an AQ-format key
+// as `x-goog-api-key` (what this provider used to hardcode) fails with
+// ACCESS_TOKEN_TYPE_UNSUPPORTED no matter how valid the key is.
+Deno.test("buildAuthHeaders sends an AQ-format key as a bearer token", () => {
+  const headers = buildAuthHeaders("AQ.Ab8RN6exemplo");
+  assertEquals(headers["Authorization"], "Bearer AQ.Ab8RN6exemplo");
+  assertEquals(headers["x-goog-api-key"], undefined);
+});
+
+Deno.test("buildAuthHeaders sends a legacy key as x-goog-api-key", () => {
+  const headers = buildAuthHeaders("AIzaSyExemplo");
+  assertEquals(headers["x-goog-api-key"], "AIzaSyExemplo");
+  assertEquals(headers["Authorization"], undefined);
+});
+
+// Only one of the two ever goes out: the wrong header takes precedence
+// and fails the request, so they must never both be present.
+Deno.test("buildAuthHeaders never sends both auth headers", () => {
+  for (const key of ["AQ.Ab8RN6exemplo", "AIzaSyExemplo", "formato-novo"]) {
+    assertEquals(Object.keys(buildAuthHeaders(key)).length, 1);
+  }
 });
