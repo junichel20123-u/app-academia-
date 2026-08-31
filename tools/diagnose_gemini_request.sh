@@ -121,6 +121,19 @@ PY
 echo "modelo alvo: $MODEL"
 echo
 
+# Uma chave truncada ou com espaco/quebra de linha grudada na copia falha
+# com a MESMA mensagem de uma chave bloqueada, entao vale conferir a forma
+# antes de culpar o projeto do Google. Nada aqui revela a chave: so o
+# tamanho, o prefixo (que e igual para todas) e se ha lixo invisivel.
+echo "== credencial (conferencia de forma, nada sensivel)"
+printf '   tamanho: %s caracteres\n' "${#GEMINI_KEY}"
+printf '   prefixo: %s...\n' "$(printf '%s' "$GEMINI_KEY" | cut -c1-5)"
+case "$GEMINI_KEY" in
+  *[[:space:]]*) echo "   ATENCAO: contem espaco ou quebra de linha — provavelmente lixo da copia" ;;
+  *)             echo "   sem espacos ou quebras de linha" ;;
+esac
+echo
+
 echo "== 0. Autenticacao — qual header esta chave aceita"
 # Os dois formatos de chave do Gemini nao sao intercambiaveis entre
 # headers, e a funcao so pode mandar um. Testar os dois aqui e o que
@@ -142,28 +155,47 @@ for h in "$H_KEY" "$H_BEARER"; do
 done
 
 echo
-if [ -z "$WORKING" ]; then
-  echo "Nenhum header autenticou — o problema esta na chave ou no projeto do"
-  echo "Google, nao no corpo da requisicao. As etapas 1-3 foram puladas."
-  exit 0
+if [ -n "$WORKING" ]; then
+  echo "header que autenticou: ${WORKING%%:*}"
 fi
-echo "header que autenticou: ${WORKING%%:*}"
 echo
 
 echo "== 1. Modelos que esta chave enxerga"
-curl -sS -m 60 "$BASE/models" -H "$WORKING" | MODEL="$MODEL" python3 -c '
+# Roda mesmo quando generateContent falhou: e outro metodo da mesma API,
+# entao um sucesso aqui provaria que a chave e valida e o bloqueio e
+# especifico do metodo, enquanto uma falha igual aponta para a chave em si.
+for h in "$H_KEY" "$H_BEARER"; do
+  printf '   via %-22s -> ' "${h%%:*}"
+  curl -sS -m 60 "$BASE/models" -H "$h" | MODEL="$MODEL" python3 -c '
 import json, os, sys
 alvo = os.environ["MODEL"]
-d = json.load(sys.stdin)
+try:
+    d = json.load(sys.stdin)
+except Exception:
+    print("resposta nao-JSON"); raise SystemExit
 if "error" in d:
-    print("   nao foi possivel listar:", d["error"].get("status"))
+    e = d["error"]
+    reason = (e.get("details") or [{}])[0].get("reason", "-")
+    print("ERRO", e.get("code"), e.get("status"), reason)
     raise SystemExit
 nomes = [m.get("name", "").split("/")[-1] for m in d.get("models", [])]
-print("   " + alvo + " disponivel?", "SIM" if alvo in nomes else "NAO")
 flash = sorted(n for n in nomes if "flash" in n)
-print("   modelos flash:", ", ".join(flash) if flash else "(nenhum)")
+print(len(nomes), "modelos |", alvo, "disponivel?",
+      "SIM" if alvo in nomes else "NAO", "| flash:",
+      ", ".join(flash[:6]) if flash else "(nenhum)")
 '
+done
 echo
+
+if [ -z "$WORKING" ]; then
+  echo "Nenhum header autenticou em generateContent. Se a listagem de"
+  echo "modelos acima tambem falhou, a chave nao esta sendo reconhecida"
+  echo "(copia incompleta, ou chave de outro projeto). Se a listagem"
+  echo "funcionou, a chave e valida e o bloqueio e especifico — restricao"
+  echo "de API na chave, ou a Generative Language API desabilitada no"
+  echo "projeto. As etapas 2-3 foram puladas."
+  exit 0
+fi
 
 echo "== 2. Corpo da requisicao, campo a campo (o tempo importa tanto quanto o status)"
 call "   1 minimo                     " "$WORKING" "$DIR/v1.json"
