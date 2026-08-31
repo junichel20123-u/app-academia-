@@ -101,7 +101,13 @@ Deno.test("toProviderMessages maps assistant to model and keeps user as-is", () 
     { role: "user", content: "Oi" },
     { role: "assistant", content: "Olá! Como posso ajudar?" },
   ]);
+  // Field by field, not object to object: the `assertEquals` helper above
+  // compares with `!==`, so two structurally identical object literals
+  // never match — this test failed for that reason alone until now (it
+  // shipped without ever being run against a real Deno).
   assertEquals(mapped.length, 2);
-  assertEquals(mapped[0], { role: "user", content: "Oi" });
-  assertEquals(mapped[1], { role: "model", content: "Olá! Como posso ajudar?" });
+  assertEquals(mapped[0].role, "user");
+  assertEquals(mapped[0].content, "Oi");
+  assertEquals(mapped[1].role, "model");
+  assertEquals(mapped[1].content, "Olá! Como posso ajudar?");
 });

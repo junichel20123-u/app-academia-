@@ -27,7 +27,31 @@ const BASE_URL = "https://generativelanguage.googleapis.com/v1beta";
 // generation this constrained (see plan.ts's buildPlanSchema — the closed
 // exerciseSlug enum and exact day count already guarantee structure).
 const DEFAULT_MODEL = "gemini-3.6-flash";
-const DEFAULT_TIMEOUT_MS = 30_000;
+// 60s, not the original 30s: the 30s cap was chosen before this function
+// ran on a Gemini 3 generation model, and it started firing on *every*
+// call once `gemini-3.6-flash` became the model — the Edge Function logs
+// showed the abort landing exactly 30.0s after each boot, so the request
+// was still in flight, not failing. Well inside Supabase's own wall-clock
+// budget for an Edge Function, and it only ever costs real time on a call
+// that would otherwise have failed outright. DEFAULT_THINKING_LEVEL below
+// is what actually brings the normal case back under a few seconds; this
+// is the backstop for a slow tail, not the fix.
+const DEFAULT_TIMEOUT_MS = 60_000;
+
+// Gemini 3 models (this one included) do extended "thinking" by default —
+// the API's default effort is medium, and we never sent a thinkingConfig,
+// so every call silently paid for reasoning neither endpoint needs. The
+// plan builder is structured generation pinned to a closed exercise enum
+// and numeric bounds (see plan.ts), and the coach is short conversational
+// Q&A; both are latency-critical from a phone. "low" (not "minimal") keeps
+// some reasoning for the coach's advice quality while cutting the bulk of
+// the latency. Field shape verified against the live API: an unknown key
+// under generationConfig is rejected with "Unknown name ... Cannot find
+// field" before auth is even checked, and this one is accepted.
+// Note: thinkingLevel and the legacy thinkingBudget are mutually
+// exclusive — sending both fails the request, so never add thinkingBudget
+// here without removing this.
+const DEFAULT_THINKING_LEVEL = "low";
 // Lower than Gemini's default (1.0): this call is constrained structured
 // generation against a closed exercise list and numeric bounds (see
 // plan.ts's buildPlanSchema), not open-ended creative writing — a lower
@@ -83,6 +107,7 @@ export class GeminiTextGenerationProvider implements TextGenerationProvider {
         responseMimeType: "application/json",
         responseJsonSchema: request.jsonSchema,
         temperature: DEFAULT_TEMPERATURE,
+        thinkingConfig: { thinkingLevel: DEFAULT_THINKING_LEVEL },
       },
     });
 
@@ -101,7 +126,10 @@ export class GeminiTextGenerationProvider implements TextGenerationProvider {
     return await this._generateContentText({
       contents: mapMessagesToContents(request.messages),
       systemInstruction: { parts: [{ text: request.systemPrompt }] },
-      generationConfig: { temperature: DEFAULT_CHAT_TEMPERATURE },
+      generationConfig: {
+        temperature: DEFAULT_CHAT_TEMPERATURE,
+        thinkingConfig: { thinkingLevel: DEFAULT_THINKING_LEVEL },
+      },
     });
   }
 
