@@ -69,35 +69,6 @@ const DEFAULT_TEMPERATURE = 0.4;
 const DEFAULT_CHAT_TEMPERATURE = 0.7;
 
 /**
- * Picks the auth header that matches the credential's format. Google is
- * migrating Gemini API keys from the old "Standard" keys (`AIza...`) to
- * "Auth" keys (`AQ.Ab...`), and the two are not interchangeable across
- * headers — verified against the live API, where each format is only
- * recognized *as a key* in one of them:
- *
- *   AQ.  + Authorization: Bearer  -> API_KEY_SERVICE_BLOCKED  (recognized)
- *   AQ.  + x-goog-api-key         -> ACCESS_TOKEN_TYPE_UNSUPPORTED
- *   AIza + x-goog-api-key         -> API_KEY_INVALID           (recognized)
- *   AIza + Authorization: Bearer  -> ACCESS_TOKEN_TYPE_UNSUPPORTED
- *
- * (Those are the errors for deliberately fake keys of each shape: a
- * key-level complaint means the header parsed it as a key, a type
- * complaint means it did not.) Hardcoding `x-goog-api-key` meant an
- * AQ-format key could never authenticate, which is what surfaced in the
- * app as a 401 and then a bare 400.
- *
- * Sending both headers is not an option — the wrong one takes precedence
- * and fails the request — so the format has to pick. A pure function so
- * it is unit-testable without a real call, matching `mapGeminiError` and
- * `extractResponseText` below.
- */
-export function buildAuthHeaders(apiKey: string): Record<string, string> {
-  return apiKey.startsWith("AQ.")
-    ? { "Authorization": `Bearer ${apiKey}` }
-    : { "x-goog-api-key": apiKey };
-}
-
-/**
  * Maps a REST error (an HTTP status code, from either a non-OK response or
  * a thrown fetch/abort error) to our provider-agnostic error taxonomy. A
  * pure function so it's unit-testable without a real network call —
@@ -187,7 +158,17 @@ export class GeminiTextGenerationProvider implements TextGenerationProvider {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            ...buildAuthHeaders(this.apiKey),
+            // Sempre x-goog-api-key, para os dois formatos de chave do
+            // Gemini (as antigas "AIza..." e as novas "AQ.Ab..."):
+            // verificado contra a API com uma chave AQ real, que
+            // autentica aqui e falha em Authorization: Bearer.
+            //
+            // Cuidado ao mexer nisto: o Bearer responde
+            // API_KEY_SERVICE_BLOCKED para *qualquer* valor, inclusive um
+            // inventado, o que passa a falsa impressao de que ele
+            // reconheceu a chave. Foi assim que este header chegou a ser
+            // trocado por engano. So um teste com chave valida distingue.
+            "x-goog-api-key": this.apiKey,
           },
           body: JSON.stringify(body),
           signal: controller.signal,

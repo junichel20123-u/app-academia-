@@ -114,6 +114,42 @@ bodies = {
     "v6": {"contents": contents, "systemInstruction": sysi,
            "generationConfig": {**full, "thinkingConfig": {"thinkingLevel": "low"}}},
 }
+
+# Bissecao do schema: a etapa 2 mostra que responseJsonSchema e recusado,
+# mas nao QUAL construcao dentro dele. Cada variante abaixo acrescenta uma
+# unica construcao ao schema trivial, entao a primeira que falhar e a
+# culpada. A ultima testa o campo legado responseSchema como alternativa.
+trivial = {"type": "object", "properties": {"nome": {"type": "string"}},
+           "required": ["nome"]}
+
+def com(**extra):
+    base = json.loads(json.dumps(trivial))
+    base.update(extra)
+    return base
+
+schema_variants = {
+    "s1": ("schema trivial              ", {"responseJsonSchema": trivial}),
+    "s2": ("+ additionalProperties:false", {"responseJsonSchema": com(additionalProperties=False)}),
+    "s3": ("+ array minItems/maxItems   ", {"responseJsonSchema": com(properties={
+        "nome": {"type": "string"},
+        "lista": {"type": "array", "minItems": 1, "maxItems": 3, "items": {"type": "string"}}})}),
+    "s4": ("+ enum com 78 valores       ", {"responseJsonSchema": com(properties={
+        "nome": {"type": "string"}, "slug": {"type": "string", "enum": slugs}})}),
+    "s5": ("+ anyOf com null            ", {"responseJsonSchema": com(properties={
+        "nome": {"type": "string"},
+        "reps": {"anyOf": [{"type": "integer"}, {"type": "null"}]}})}),
+    "s6": ("+ minimum/maximum           ", {"responseJsonSchema": com(properties={
+        "nome": {"type": "string"},
+        "series": {"type": "integer", "minimum": 1, "maximum": 8}})}),
+    "s7": ("responseSchema legado (OpenAPI)", {"responseSchema": {
+        "type": "OBJECT", "properties": {"nome": {"type": "STRING"}}, "required": ["nome"]}}),
+}
+for name, (_, cfg) in schema_variants.items():
+    json.dump({"contents": [{"parts": [{"text": "Devolva um objeto com o campo nome."}]}],
+               "generationConfig": {"responseMimeType": "application/json", **cfg}},
+              open(os.path.join(d, name + ".json"), "w"))
+open(os.path.join(d, "schema_labels.txt"), "w").write(
+    "\n".join(f"{k}\t{v[0]}" for k, v in schema_variants.items()) + "\n")
 for name, body in bodies.items():
     json.dump(body, open(os.path.join(d, name + ".json"), "w"))
 PY
@@ -207,3 +243,12 @@ echo
 
 echo "== 3. Extra — thinkingConfig corta latencia ou e recusado?"
 call "   6 = 5 + thinkingLevel low    " "$WORKING" "$DIR/v6.json"
+
+echo
+echo "== 4. Bissecao do schema — qual construcao o Gemini recusa"
+# A etapa 2 prova que responseJsonSchema e recusado; esta etapa diz por
+# que. Cada linha acrescenta UMA construcao a um schema trivial que
+# funciona, entao a primeira falha aponta exatamente o que remover.
+while IFS=$'\t' read -r file label; do
+  call "   $label" "$WORKING" "$DIR/$file.json"
+done < "$DIR/schema_labels.txt"
