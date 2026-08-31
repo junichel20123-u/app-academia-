@@ -38,20 +38,22 @@ const DEFAULT_MODEL = "gemini-3.6-flash";
 // is the backstop for a slow tail, not the fix.
 const DEFAULT_TIMEOUT_MS = 60_000;
 
-// Gemini 3 models (this one included) do extended "thinking" by default —
-// the API's default effort is medium, and we never sent a thinkingConfig,
-// so every call silently paid for reasoning neither endpoint needs. The
-// plan builder is structured generation pinned to a closed exercise enum
-// and numeric bounds (see plan.ts), and the coach is short conversational
-// Q&A; both are latency-critical from a phone. "low" (not "minimal") keeps
-// some reasoning for the coach's advice quality while cutting the bulk of
-// the latency. Field shape verified against the live API: an unknown key
-// under generationConfig is rejected with "Unknown name ... Cannot find
-// field" before auth is even checked, and this one is accepted.
+// Gemini 3 models (this one included) do extended "thinking" by default
+// — the API's default effort is medium — and that is what pushed every
+// call past the old 30s abort. Asking for a lower level is the natural
+// fix, but `gemini-3.6-flash` rejects a thinkingConfig on these calls
+// with a bare 400 "Request contains an invalid argument" (the enum value
+// itself is fine — the live API accepts "low" and rejects a bogus value
+// at proto-parse time, before auth — so the rejection is semantic, most
+// likely the combination with responseJsonSchema).
+//
+// So: no thinkingConfig unless GEMINI_THINKING_LEVEL is set. Unset (the
+// default) reproduces the request shape that Gemini demonstrably accepts,
+// and the knob makes it possible to probe a working value with
+// `supabase secrets set` alone, without a code change and redeploy for
+// each attempt — same reason GEMINI_MODEL is already an env var.
 // Note: thinkingLevel and the legacy thinkingBudget are mutually
-// exclusive — sending both fails the request, so never add thinkingBudget
-// here without removing this.
-const DEFAULT_THINKING_LEVEL = "low";
+// exclusive — sending both fails the request.
 // Lower than Gemini's default (1.0): this call is constrained structured
 // generation against a closed exercise list and numeric bounds (see
 // plan.ts's buildPlanSchema), not open-ended creative writing — a lower
@@ -94,6 +96,7 @@ export class GeminiTextGenerationProvider implements TextGenerationProvider {
   constructor(
     private readonly apiKey: string,
     private readonly model: string = DEFAULT_MODEL,
+    private readonly thinkingLevel: string | undefined = undefined,
     private readonly timeoutMs: number = DEFAULT_TIMEOUT_MS,
   ) {}
 
@@ -103,12 +106,11 @@ export class GeminiTextGenerationProvider implements TextGenerationProvider {
     const text = await this._generateContentText({
       contents: [{ parts: [{ text: request.userPrompt }] }],
       systemInstruction: { parts: [{ text: request.systemPrompt }] },
-      generationConfig: {
+      generationConfig: this._generationConfig({
         responseMimeType: "application/json",
         responseJsonSchema: request.jsonSchema,
         temperature: DEFAULT_TEMPERATURE,
-        thinkingConfig: { thinkingLevel: DEFAULT_THINKING_LEVEL },
-      },
+      }),
     });
 
     try {
@@ -126,11 +128,18 @@ export class GeminiTextGenerationProvider implements TextGenerationProvider {
     return await this._generateContentText({
       contents: mapMessagesToContents(request.messages),
       systemInstruction: { parts: [{ text: request.systemPrompt }] },
-      generationConfig: {
+      generationConfig: this._generationConfig({
         temperature: DEFAULT_CHAT_TEMPERATURE,
-        thinkingConfig: { thinkingLevel: DEFAULT_THINKING_LEVEL },
-      },
+      }),
     });
+  }
+
+  /** Adds a thinkingConfig to a generationConfig only when a level was
+   * configured — see DEFAULT_MODEL's note above on why the default is to
+   * send none at all. */
+  private _generationConfig(base: Record<string, unknown>): unknown {
+    if (this.thinkingLevel === undefined) return base;
+    return { ...base, thinkingConfig: { thinkingLevel: this.thinkingLevel } };
   }
 
   /** Shared `:generateContent` call + response-text extraction behind

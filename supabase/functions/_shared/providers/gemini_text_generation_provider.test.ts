@@ -91,6 +91,7 @@ Deno.test("mapMessagesToContents returns an empty array for no messages", () => 
 /// convention for the rest of this file) can't reach it.
 async function captureRequestBody(
   run: (provider: GeminiTextGenerationProvider) => Promise<unknown>,
+  thinkingLevel?: string,
 ): Promise<Record<string, unknown>> {
   const originalFetch = globalThis.fetch;
   let captured: Record<string, unknown> | undefined;
@@ -106,7 +107,9 @@ async function captureRequestBody(
     );
   }) as typeof globalThis.fetch;
   try {
-    await run(new GeminiTextGenerationProvider("test-key"));
+    await run(
+      new GeminiTextGenerationProvider("test-key", undefined, thinkingLevel),
+    );
   } finally {
     globalThis.fetch = originalFetch;
   }
@@ -121,47 +124,58 @@ function thinkingLevelOf(body: Record<string, unknown>): unknown {
   return generationConfig?.thinkingConfig?.thinkingLevel;
 }
 
-// Regression guard: `gemini-3.6-flash` is a Gemini 3 model, which does
-// extended thinking by default. Omitting thinkingConfig is what pushed
-// every call past the provider's own abort, surfacing to the app as a
-// blanket 503 on both the plan builder and the coach.
-Deno.test("generateStructured asks for low thinking", async () => {
-  const body = await captureRequestBody((provider) =>
+// Regression guard for a real outage: sending a thinkingConfig makes
+// `gemini-3.6-flash` reject the whole request with a bare 400, which
+// surfaced in the app as every AI feature failing at once. Nothing may
+// put that field back into the default request shape.
+Deno.test("no thinkingConfig is sent unless one is configured", async () => {
+  const structured = await captureRequestBody((provider) =>
     provider.generateStructured({
       systemPrompt: "system",
       userPrompt: "user",
       jsonSchema: { type: "object" },
     })
   );
-  assertEquals(thinkingLevelOf(body), "low");
-});
+  assert(!JSON.stringify(structured).includes("thinkingConfig"));
 
-Deno.test("generateText asks for low thinking", async () => {
-  const body = await captureRequestBody((provider) =>
+  const chat = await captureRequestBody((provider) =>
     provider.generateText({
       systemPrompt: "system",
       messages: [{ role: "user", content: "oi" }],
     })
   );
-  assertEquals(thinkingLevelOf(body), "low");
+  assert(!JSON.stringify(chat).includes("thinkingConfig"));
 });
 
-// The legacy thinkingBudget field is mutually exclusive with
-// thinkingLevel — sending both makes Gemini reject the whole request.
-Deno.test("neither call sends the legacy thinkingBudget field", async () => {
-  for (
-    const run of [
-      (p: GeminiTextGenerationProvider) =>
-        p.generateStructured({
-          systemPrompt: "s",
-          userPrompt: "u",
-          jsonSchema: { type: "object" },
-        }),
-      (p: GeminiTextGenerationProvider) =>
-        p.generateText({ systemPrompt: "s", messages: [] }),
-    ]
-  ) {
-    const body = await captureRequestBody(run);
-    assert(!JSON.stringify(body).includes("thinkingBudget"));
-  }
+// The knob still has to work, so a level found to be accepted can be
+// switched on with `supabase secrets set` alone.
+Deno.test("a configured thinking level reaches both calls", async () => {
+  const structured = await captureRequestBody(
+    (provider) =>
+      provider.generateStructured({
+        systemPrompt: "system",
+        userPrompt: "user",
+        jsonSchema: { type: "object" },
+      }),
+    "low",
+  );
+  assertEquals(thinkingLevelOf(structured), "low");
+
+  const chat = await captureRequestBody(
+    (provider) =>
+      provider.generateText({ systemPrompt: "system", messages: [] }),
+    "low",
+  );
+  assertEquals(thinkingLevelOf(chat), "low");
+});
+
+// thinkingLevel and the legacy thinkingBudget are mutually exclusive —
+// sending both makes Gemini reject the request outright.
+Deno.test("the legacy thinkingBudget field is never sent", async () => {
+  const body = await captureRequestBody(
+    (provider) =>
+      provider.generateText({ systemPrompt: "s", messages: [] }),
+    "low",
+  );
+  assert(!JSON.stringify(body).includes("thinkingBudget"));
 });

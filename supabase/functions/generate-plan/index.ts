@@ -72,6 +72,9 @@ Deno.serve(async (req) => {
   const provider = new GeminiTextGenerationProvider(
     apiKey,
     Deno.env.get("GEMINI_MODEL") || undefined,
+    // Unset by default: gemini-3.6-flash 400s on a thinkingConfig here.
+    // See the note in gemini_text_generation_provider.ts.
+    Deno.env.get("GEMINI_THINKING_LEVEL") || undefined,
   );
 
   try {
