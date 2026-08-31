@@ -48,7 +48,7 @@ trap 'rm -rf "$DIR"' EXIT
 # Resume uma resposta da API em uma linha, sem vazar nada sensivel.
 summarize() {
   python3 -c '
-import json, sys
+import json, os, sys
 raw = sys.stdin.read()
 try:
     d = json.loads(raw)
@@ -58,7 +58,8 @@ if "error" in d:
     e = d["error"]
     reason = (e.get("details") or [{}])[0].get("reason", "-")
     extra = " <- cota por minuto estourada, espere e repita" if e.get("code") == 429 else ""
-    print("ERRO", e.get("code"), e.get("status"), reason, extra)
+    detalhe = (e.get("message") or "")[:70] if os.environ.get("VERBOSO") else ""
+    print("ERRO", e.get("code"), e.get("status"), reason, detalhe, extra)
 else:
     c = (d.get("candidates") or [{}])[0]
     parts = c.get("content", {}).get("parts", [])
@@ -154,6 +155,54 @@ schema_variants = {
     "s7": ("responseSchema legado (OpenAPI)", {"responseSchema": {
         "type": "OBJECT", "properties": {"nome": {"type": "STRING"}}, "required": ["nome"]}}),
 }
+# Bissecao do schema REAL: a secao 4 mostrou que nenhuma construcao
+# isolada e recusada, entao a causa esta na combinacao — o schema de
+# plan.ts tem cinco niveis (objeto > array > objeto > array > objeto) com
+# o enum no fundo, enquanto a secao 4 so testou profundidade 2. Estas
+# variantes crescem ate a forma real, uma camada por vez.
+def plano(exercicio_props, exercicio_required):
+    return {
+        "type": "object",
+        "properties": {"workouts": {
+            "type": "array", "minItems": 5, "maxItems": 5,
+            "items": {
+                "type": "object",
+                "properties": {
+                    "name": {"type": "string"},
+                    "exercises": {
+                        "type": "array", "minItems": 1, "maxItems": 12,
+                        "items": {"type": "object",
+                                  "properties": exercicio_props,
+                                  "required": exercicio_required,
+                                  "additionalProperties": False}},
+                },
+                "required": ["name", "exercises"], "additionalProperties": False}}},
+        "required": ["workouts"], "additionalProperties": False,
+    }
+
+real_variants = {
+    "r1": ("aninhado, slug texto simples", plano({"exerciseSlug": {"type": "string"}}, ["exerciseSlug"])),
+    "r2": ("+ enum de 78 no fundo      ", plano({"exerciseSlug": {"type": "string", "enum": slugs}}, ["exerciseSlug"])),
+    "r3": ("+ inteiros com bounds      ", plano({
+        "exerciseSlug": {"type": "string", "enum": slugs},
+        "targetSets": {"type": "integer", "minimum": 1, "maximum": 8}},
+        ["exerciseSlug", "targetSets"])),
+    "r4": ("= schema real completo     ", plano({
+        "exerciseSlug": {"type": "string", "enum": slugs},
+        "targetSets": {"type": "integer", "minimum": 1, "maximum": 8},
+        "targetReps": {"anyOf": [{"type": "integer", "minimum": 1, "maximum": 50}, {"type": "null"}]},
+        "targetRestSeconds": {"anyOf": [{"type": "integer", "minimum": 10, "maximum": 600}, {"type": "null"}]},
+        "notes": {"anyOf": [{"type": "string"}, {"type": "null"}]}},
+        ["exerciseSlug", "targetSets", "targetReps", "targetRestSeconds", "notes"])),
+}
+for name, (_, sch) in real_variants.items():
+    json.dump({"contents": contents,
+               "generationConfig": {"responseMimeType": "application/json",
+                                    "responseJsonSchema": sch}},
+              open(os.path.join(d, name + ".json"), "w"))
+open(os.path.join(d, "real_labels.txt"), "w").write(
+    "\n".join(f"{k}\t{v[0]}" for k, v in real_variants.items()) + "\n")
+
 for name, (_, cfg) in schema_variants.items():
     json.dump({"contents": [{"parts": [{"text": "Devolva um objeto com o campo nome."}]}],
                "generationConfig": {"responseMimeType": "application/json", **cfg}},
@@ -280,4 +329,15 @@ echo "== 4. Bissecao do schema — qual construcao o Gemini recusa"
 while IFS=$'\t' read -r file label; do
   call "   $label" "$WORKING" "$DIR/$file.json"
 done < "$DIR/schema_labels.txt"
+fi
+
+if [ "$SO" = "tudo" ] || [ "$SO" = "5" ]; then
+echo
+echo "== 5. Bissecao do schema REAL — em qual camada ele quebra"
+# A secao 4 provou que nenhuma construcao isolada e recusada. Estas
+# variantes montam a forma real de plan.ts camada por camada, entao a
+# primeira falha diz o que a combinacao tem de demais.
+while IFS=$'\t' read -r file label; do
+  VERBOSO=1 call "   $label" "$WORKING" "$DIR/$file.json"
+done < "$DIR/real_labels.txt"
 fi
