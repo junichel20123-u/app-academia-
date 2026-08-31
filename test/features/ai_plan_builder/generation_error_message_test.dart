@@ -55,6 +55,60 @@ void main() {
       expect(describeGenerationError(error), contains('502'));
     });
 
+    // The Edge Functions answer a failure with `{ error, kind }`. Naming
+    // the cause is the whole point: a bare "erro (502)" sent every
+    // diagnosis through the Supabase dashboard logs.
+    test('names the cause when the response carries a kind', () {
+      DioException withKind(String kind) => DioException(
+        requestOptions: RequestOptions(path: '/generate-plan'),
+        type: DioExceptionType.badResponse,
+        response: Response(
+          requestOptions: RequestOptions(path: '/generate-plan'),
+          statusCode: 502,
+          data: {'error': 'Falha ao gerar o plano.', 'kind': kind},
+        ),
+      );
+
+      expect(describeGenerationError(withKind('auth')), contains('credencial'));
+      expect(
+        describeGenerationError(withKind('timeout')),
+        contains('demorou demais'),
+      );
+      expect(
+        describeGenerationError(withKind('rate_limited')),
+        contains('limite de uso'),
+      );
+      expect(
+        describeGenerationError(withKind('unavailable')),
+        contains('indisponível'),
+      );
+      expect(
+        describeGenerationError(withKind('invalid_response')),
+        contains('formato'),
+      );
+    });
+
+    // A function deployed before `kind` existed, or a failure raised
+    // before it runs at all, must still produce something actionable.
+    test('falls back to the status code for an unknown or absent kind', () {
+      DioException withData(Object? data) => DioException(
+        requestOptions: RequestOptions(path: '/generate-plan'),
+        type: DioExceptionType.badResponse,
+        response: Response(
+          requestOptions: RequestOptions(path: '/generate-plan'),
+          statusCode: 503,
+          data: data,
+        ),
+      );
+
+      expect(describeGenerationError(withData(null)), contains('503'));
+      expect(
+        describeGenerationError(withData({'error': 'x', 'kind': 'unknown'})),
+        contains('503'),
+      );
+      expect(describeGenerationError(withData('texto solto')), contains('503'));
+    });
+
     test('falls back to a generic message for anything else', () {
       expect(
         describeGenerationError(Exception('something unexpected')),

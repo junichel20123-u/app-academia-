@@ -102,8 +102,12 @@ Deno.serve(async (req) => {
   } catch (error) {
     console.error("generate-plan error", error);
     if (error instanceof TextGenerationError) {
+      // `kind` acompanha a mensagem: e a categoria ja sanitizada do
+      // erro (nunca o texto cru do provedor, nunca a chave), e e o que
+      // permite ao app dizer o que houve em vez de so ecoar um codigo
+      // HTTP — sem isso, cada falha exigia abrir os logs do painel.
       return jsonResponse(
-        { error: "Falha ao gerar o plano." },
+        { error: "Falha ao gerar o plano.", kind: error.kind },
         statusForError(error),
       );
     }

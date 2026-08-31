@@ -1,105 +1,177 @@
 #!/usr/bin/env bash
 #
-# Isola qual parte do corpo da requisicao a API do Gemini esta recusando.
+# Descobre, em UMA execucao, tudo que ainda nao sabemos sobre por que a
+# Edge Function nao consegue gerar um plano.
 #
-# Existe porque a Edge Function so consegue registrar o que o Google
-# devolve, e o Google responde "Request contains an invalid argument."
-# sem dizer qual argumento. Este script sobe a requisicao campo a campo,
-# da forma minima ate a forma exata que generate-plan monta hoje, e
-# imprime so o status de cada uma — a primeira que falhar aponta o campo.
+# Existe porque o ambiente onde este codigo e desenvolvido nao alcanca uma
+# chave valida do Gemini: sem isto, cada hipotese so pode ser testada com
+# um deploy + teste manual, que foi exatamente o ciclo que travou a
+# depuracao deste bug. Aqui a chave real fala com o Google direto, fora do
+# app, e cada etapa isola uma variavel:
+#
+#   0. qual header autentica esta chave (os dois formatos nao sao
+#      intercambiaveis, e o app so pode mandar um)
+#   1. quais modelos esta chave enxerga
+#   2. qual campo do corpo, se algum, e recusado
+#   3. se thinkingConfig e aceito (corta latencia quando e)
+#
+# Cada chamada mostra o tempo decorrido — e o que responde se o timeout
+# de 60s da funcao e suficiente.
 #
 # Uso:
-#   export GEMINI_KEY=<a chave que comeca com AIzaSy>
+#   export GEMINI_KEY=<a chave, do jeito que esta no secret do Supabase>
 #   bash tools/diagnose_gemini_request.sh
 #
-# A chave nunca aparece na saida, entao o resultado pode ser colado inteiro.
+# A chave nunca aparece na saida: o resultado pode ser colado inteiro.
 set -u
 
 if [ -z "${GEMINI_KEY:-}" ]; then
-  echo "Defina GEMINI_KEY antes de rodar: export GEMINI_KEY=AIzaSy..." >&2
+  echo "Defina GEMINI_KEY antes de rodar:" >&2
+  echo "  export GEMINI_KEY=sua-chave    (cole a chave no lugar de 'sua-chave')" >&2
   exit 1
 fi
-# Cada formato de chave so autentica no seu proprio header: as novas
-# "Auth keys" (AQ.Ab...) vao em Authorization: Bearer, as antigas
-# "Standard keys" (AIza...) vao em x-goog-api-key. Trocar os dois da
-# 401 ACCESS_TOKEN_TYPE_UNSUPPORTED por mais valida que a chave seja.
-case "$GEMINI_KEY" in
-  AQ.*) AUTH_HEADER="Authorization: Bearer $GEMINI_KEY"; FORMATO="AQ (auth key)" ;;
-  *)    AUTH_HEADER="x-goog-api-key: $GEMINI_KEY";       FORMATO="AIza (standard key)" ;;
-esac
 
 MODEL="${GEMINI_MODEL:-gemini-3.6-flash}"
-URL="https://generativelanguage.googleapis.com/v1beta/models/$MODEL:generateContent"
+BASE="https://generativelanguage.googleapis.com/v1beta"
+URL="$BASE/models/$MODEL:generateContent"
 DIR="$(mktemp -d)"
 trap 'rm -rf "$DIR"' EXIT
 
-echo "modelo: $MODEL"
-echo "formato da chave: $FORMATO"
-echo
-
-# Reproduz o schema que generate-plan/plan.ts gera (5 dias, 78 exercicios).
-python3 - "$DIR" <<'PY'
-import json, sys, os
-d = sys.argv[1]
-slugs = [f"exercicio-{i+1}" for i in range(78)]
-entry = {
-  "type": "object",
-  "properties": {
-    "exerciseSlug": {"type": "string", "enum": slugs},
-    "targetSets": {"type": "integer", "minimum": 1, "maximum": 8},
-    "targetReps": {"anyOf": [{"type": "integer", "minimum": 1, "maximum": 50}, {"type": "null"}]},
-    "targetRestSeconds": {"anyOf": [{"type": "integer", "minimum": 10, "maximum": 600}, {"type": "null"}]},
-    "notes": {"anyOf": [{"type": "string"}, {"type": "null"}]},
-  },
-  "required": ["exerciseSlug", "targetSets", "targetReps", "targetRestSeconds", "notes"],
-  "additionalProperties": False,
-}
-schema = {
-  "type": "object",
-  "properties": {"workouts": {"minItems": 5, "maxItems": 5, "type": "array", "items": {
-      "type": "object",
-      "properties": {"name": {"type": "string"},
-                     "exercises": {"minItems": 1, "maxItems": 12, "type": "array", "items": entry}},
-      "required": ["name", "exercises"], "additionalProperties": False}}},
-  "required": ["workouts"], "additionalProperties": False,
-}
-contents = [{"parts": [{"text": "Monte um plano de 5 dias com os exercicios da lista."}]}]
-sysi = {"parts": [{"text": "Voce e um treinador. Responda apenas com JSON."}]}
-full = {"responseMimeType": "application/json", "responseJsonSchema": schema, "temperature": 0.4}
-
-variants = [
-  ("1 minimo (so contents)        ", {"contents": contents}),
-  ("2 + responseMimeType          ", {"contents": contents, "generationConfig": {"responseMimeType": "application/json"}}),
-  ("3 + responseJsonSchema        ", {"contents": contents, "generationConfig": {k: full[k] for k in ("responseMimeType", "responseJsonSchema")}}),
-  ("4 + temperature               ", {"contents": contents, "generationConfig": full}),
-  ("5 + systemInstruction (= hoje)", {"contents": contents, "systemInstruction": sysi, "generationConfig": full}),
-]
-names = []
-for i, (label, body) in enumerate(variants):
-    json.dump(body, open(os.path.join(d, f"body{i}.json"), "w"))
-    names.append(label)
-open(os.path.join(d, "labels.txt"), "w").write("\n".join(names) + "\n")
-PY
-
-i=0
-while IFS= read -r label; do
-  out=$(curl -sS -m 90 -X POST "$URL" \
-        -H "Content-Type: application/json" \
-        -H "$AUTH_HEADER" \
-        -d @"$DIR/body$i.json")
-  printf '%s -> %s\n' "$label" "$(printf '%s' "$out" | python3 -c '
+# Resume uma resposta da API em uma linha, sem vazar nada sensivel.
+summarize() {
+  python3 -c '
 import json, sys
+raw = sys.stdin.read()
 try:
-    d = json.load(sys.stdin)
+    d = json.loads(raw)
 except Exception:
-    print("resposta nao-JSON"); raise SystemExit
+    print("resposta nao-JSON:", raw[:80]); raise SystemExit
 if "error" in d:
     e = d["error"]
-    print("ERRO", e.get("code"), e.get("status"), "|", (e.get("message") or "")[:100])
+    reason = (e.get("details") or [{}])[0].get("reason", "-")
+    print("ERRO", e.get("code"), e.get("status"), reason)
 else:
     c = (d.get("candidates") or [{}])[0]
     parts = c.get("content", {}).get("parts", [])
-    print("OK   finishReason=" + str(c.get("finishReason")), "| partes de texto:", len(parts))
-')"
-  i=$((i + 1))
-done < "$DIR/labels.txt"
+    text = "".join(p.get("text", "") for p in parts)
+    print("OK  finishReason=" + str(c.get("finishReason")),
+          "| caracteres de texto:", len(text))
+'
+}
+
+# Faz uma chamada cronometrada e imprime "<rotulo> -> <resumo> (<N>s)".
+call() {
+  local label="$1" header="$2" body_file="$3"
+  local start end out
+  start=$(date +%s)
+  out=$(curl -sS -m 120 -X POST "$URL" \
+        -H "Content-Type: application/json" \
+        -H "$header" \
+        -d @"$body_file" 2>&1)
+  end=$(date +%s)
+  printf '%s -> %s (%ss)\n' "$label" "$(printf '%s' "$out" | summarize)" \
+    "$((end - start))"
+}
+
+# Monta todos os corpos de requisicao de uma vez. O schema reproduz o que
+# generate-plan/plan.ts gera para 5 dias e um catalogo de 78 exercicios.
+python3 - "$DIR" <<'PY'
+import json, os, sys
+d = sys.argv[1]
+slugs = [f"exercicio-{i+1}" for i in range(78)]
+entry = {
+    "type": "object",
+    "properties": {
+        "exerciseSlug": {"type": "string", "enum": slugs},
+        "targetSets": {"type": "integer", "minimum": 1, "maximum": 8},
+        "targetReps": {"anyOf": [{"type": "integer", "minimum": 1, "maximum": 50}, {"type": "null"}]},
+        "targetRestSeconds": {"anyOf": [{"type": "integer", "minimum": 10, "maximum": 600}, {"type": "null"}]},
+        "notes": {"anyOf": [{"type": "string"}, {"type": "null"}]},
+    },
+    "required": ["exerciseSlug", "targetSets", "targetReps", "targetRestSeconds", "notes"],
+    "additionalProperties": False,
+}
+schema = {
+    "type": "object",
+    "properties": {"workouts": {"minItems": 5, "maxItems": 5, "type": "array", "items": {
+        "type": "object",
+        "properties": {"name": {"type": "string"},
+                       "exercises": {"minItems": 1, "maxItems": 12, "type": "array", "items": entry}},
+        "required": ["name", "exercises"], "additionalProperties": False}}},
+    "required": ["workouts"], "additionalProperties": False,
+}
+contents = [{"parts": [{"text": "Monte um plano de treino de 5 dias usando apenas os exercicios da lista."}]}]
+sysi = {"parts": [{"text": "Voce e um treinador de musculacao. Responda apenas com JSON."}]}
+full = {"responseMimeType": "application/json", "responseJsonSchema": schema, "temperature": 0.4}
+
+bodies = {
+    "ping": {"contents": [{"parts": [{"text": "oi"}]}]},
+    "v1": {"contents": contents},
+    "v2": {"contents": contents, "generationConfig": {"responseMimeType": "application/json"}},
+    "v3": {"contents": contents, "generationConfig": {k: full[k] for k in ("responseMimeType", "responseJsonSchema")}},
+    "v4": {"contents": contents, "generationConfig": full},
+    "v5": {"contents": contents, "systemInstruction": sysi, "generationConfig": full},
+    "v6": {"contents": contents, "systemInstruction": sysi,
+           "generationConfig": {**full, "thinkingConfig": {"thinkingLevel": "low"}}},
+}
+for name, body in bodies.items():
+    json.dump(body, open(os.path.join(d, name + ".json"), "w"))
+PY
+
+echo "modelo alvo: $MODEL"
+echo
+
+echo "== 0. Autenticacao — qual header esta chave aceita"
+# Os dois formatos de chave do Gemini nao sao intercambiaveis entre
+# headers, e a funcao so pode mandar um. Testar os dois aqui e o que
+# evita concluir errado a partir de uma escolha feita por prefixo.
+H_KEY="x-goog-api-key: $GEMINI_KEY"
+H_BEARER="Authorization: Bearer $GEMINI_KEY"
+call "   x-goog-api-key       " "$H_KEY"    "$DIR/ping.json"
+call "   Authorization: Bearer" "$H_BEARER" "$DIR/ping.json"
+
+# Segue com o header que autenticou, para as etapas seguintes medirem o
+# corpo e nao a autenticacao.
+WORKING=""
+for h in "$H_KEY" "$H_BEARER"; do
+  if curl -sS -m 60 -X POST "$URL" -H "Content-Type: application/json" \
+       -H "$h" -d @"$DIR/ping.json" | grep -q '"candidates"'; then
+    WORKING="$h"
+    break
+  fi
+done
+
+echo
+if [ -z "$WORKING" ]; then
+  echo "Nenhum header autenticou — o problema esta na chave ou no projeto do"
+  echo "Google, nao no corpo da requisicao. As etapas 1-3 foram puladas."
+  exit 0
+fi
+echo "header que autenticou: ${WORKING%%:*}"
+echo
+
+echo "== 1. Modelos que esta chave enxerga"
+curl -sS -m 60 "$BASE/models" -H "$WORKING" | MODEL="$MODEL" python3 -c '
+import json, os, sys
+alvo = os.environ["MODEL"]
+d = json.load(sys.stdin)
+if "error" in d:
+    print("   nao foi possivel listar:", d["error"].get("status"))
+    raise SystemExit
+nomes = [m.get("name", "").split("/")[-1] for m in d.get("models", [])]
+print("   " + alvo + " disponivel?", "SIM" if alvo in nomes else "NAO")
+flash = sorted(n for n in nomes if "flash" in n)
+print("   modelos flash:", ", ".join(flash) if flash else "(nenhum)")
+'
+echo
+
+echo "== 2. Corpo da requisicao, campo a campo (o tempo importa tanto quanto o status)"
+call "   1 minimo                     " "$WORKING" "$DIR/v1.json"
+call "   2 + responseMimeType         " "$WORKING" "$DIR/v2.json"
+call "   3 + responseJsonSchema       " "$WORKING" "$DIR/v3.json"
+call "   4 + temperature              " "$WORKING" "$DIR/v4.json"
+call "   5 + systemInstruction (= hoje)" "$WORKING" "$DIR/v5.json"
+echo
+
+echo "== 3. Extra — thinkingConfig corta latencia ou e recusado?"
+call "   6 = 5 + thinkingLevel low    " "$WORKING" "$DIR/v6.json"
