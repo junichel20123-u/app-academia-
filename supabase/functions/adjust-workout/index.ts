@@ -22,7 +22,13 @@ function statusForError(error: TextGenerationError): number {
       return 400;
     case "rate_limited":
       return 429;
+    // Split, not both 503: these two are indistinguishable to the client
+    // otherwise, and telling them apart is exactly what cost a round trip
+    // through the Edge Function logs the first time this fired. 504 means
+    // "Gemini was still working when we gave up" (our own abort), 503
+    // means "Gemini itself was unreachable or erroring".
     case "timeout":
+      return 504;
     case "unavailable":
       return 503;
     case "auth":
