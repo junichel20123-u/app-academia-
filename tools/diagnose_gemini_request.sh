@@ -31,6 +31,14 @@ if [ -z "${GEMINI_KEY:-}" ]; then
   exit 1
 fi
 
+# O free tier do Gemini tem um limite baixo de requisicoes por minuto, e
+# este script faz mais de dez chamadas. Sem pausa, as ultimas voltam todas
+# com 429 RESOURCE_EXHAUSTED e a execucao inteira vira ruido — foi o que
+# aconteceu na primeira vez que a secao 4 rodou. PAUSA e o intervalo entre
+# chamadas; SO permite rodar uma secao isolada, sem gastar cota repetindo
+# etapas ja respondidas (ex.: SO=4 bash tools/diagnose_gemini_request.sh).
+PAUSA="${PAUSA:-7}"
+SO="${SO:-tudo}"
 MODEL="${GEMINI_MODEL:-gemini-3.6-flash}"
 BASE="https://generativelanguage.googleapis.com/v1beta"
 URL="$BASE/models/$MODEL:generateContent"
@@ -49,7 +57,8 @@ except Exception:
 if "error" in d:
     e = d["error"]
     reason = (e.get("details") or [{}])[0].get("reason", "-")
-    print("ERRO", e.get("code"), e.get("status"), reason)
+    extra = " <- cota por minuto estourada, espere e repita" if e.get("code") == 429 else ""
+    print("ERRO", e.get("code"), e.get("status"), reason, extra)
 else:
     c = (d.get("candidates") or [{}])[0]
     parts = c.get("content", {}).get("parts", [])
@@ -63,6 +72,7 @@ else:
 call() {
   local label="$1" header="$2" body_file="$3"
   local start end out
+  sleep "$PAUSA"
   start=$(date +%s)
   out=$(curl -sS -m 120 -X POST "$URL" \
         -H "Content-Type: application/json" \
@@ -170,18 +180,28 @@ case "$GEMINI_KEY" in
 esac
 echo
 
+# Definidos fora do bloco da secao 0: as etapas seguintes tambem os usam
+# quando so uma secao e pedida.
+H_KEY="x-goog-api-key: $GEMINI_KEY"
+H_BEARER="Authorization: Bearer $GEMINI_KEY"
+
+if [ "$SO" = "tudo" ] || [ "$SO" = "0" ]; then
 echo "== 0. Autenticacao — qual header esta chave aceita"
 # Os dois formatos de chave do Gemini nao sao intercambiaveis entre
 # headers, e a funcao so pode mandar um. Testar os dois aqui e o que
 # evita concluir errado a partir de uma escolha feita por prefixo.
-H_KEY="x-goog-api-key: $GEMINI_KEY"
-H_BEARER="Authorization: Bearer $GEMINI_KEY"
 call "   x-goog-api-key       " "$H_KEY"    "$DIR/ping.json"
 call "   Authorization: Bearer" "$H_BEARER" "$DIR/ping.json"
+fi
 
 # Segue com o header que autenticou, para as etapas seguintes medirem o
 # corpo e nao a autenticacao.
+# Com uma secao isolada, nao vale gastar cota re-descobrindo o header:
+# ja sabemos, por teste com chave valida, que e x-goog-api-key.
 WORKING=""
+if [ "$SO" != "tudo" ]; then
+  WORKING="$H_KEY"
+else
 for h in "$H_KEY" "$H_BEARER"; do
   if curl -sS -m 60 -X POST "$URL" -H "Content-Type: application/json" \
        -H "$h" -d @"$DIR/ping.json" | grep -q '"candidates"'; then
@@ -189,6 +209,7 @@ for h in "$H_KEY" "$H_BEARER"; do
     break
   fi
 done
+fi
 
 echo
 if [ -n "$WORKING" ]; then
@@ -196,6 +217,7 @@ if [ -n "$WORKING" ]; then
 fi
 echo
 
+if [ "$SO" = "tudo" ] || [ "$SO" = "1" ]; then
 echo "== 1. Modelos que esta chave enxerga"
 # Roda mesmo quando generateContent falhou: e outro metodo da mesma API,
 # entao um sucesso aqui provaria que a chave e valida e o bloqueio e
@@ -221,6 +243,7 @@ print(len(nomes), "modelos |", alvo, "disponivel?",
       ", ".join(flash[:6]) if flash else "(nenhum)")
 '
 done
+fi
 echo
 
 if [ -z "$WORKING" ]; then
@@ -233,18 +256,23 @@ if [ -z "$WORKING" ]; then
   exit 0
 fi
 
+if [ "$SO" = "tudo" ] || [ "$SO" = "2" ]; then
 echo "== 2. Corpo da requisicao, campo a campo (o tempo importa tanto quanto o status)"
 call "   1 minimo                     " "$WORKING" "$DIR/v1.json"
 call "   2 + responseMimeType         " "$WORKING" "$DIR/v2.json"
 call "   3 + responseJsonSchema       " "$WORKING" "$DIR/v3.json"
 call "   4 + temperature              " "$WORKING" "$DIR/v4.json"
 call "   5 + systemInstruction (= hoje)" "$WORKING" "$DIR/v5.json"
+fi
 echo
 
+if [ "$SO" = "tudo" ] || [ "$SO" = "3" ]; then
 echo "== 3. Extra — thinkingConfig corta latencia ou e recusado?"
 call "   6 = 5 + thinkingLevel low    " "$WORKING" "$DIR/v6.json"
+fi
 
 echo
+if [ "$SO" = "tudo" ] || [ "$SO" = "4" ]; then
 echo "== 4. Bissecao do schema — qual construcao o Gemini recusa"
 # A etapa 2 prova que responseJsonSchema e recusado; esta etapa diz por
 # que. Cada linha acrescenta UMA construcao a um schema trivial que
@@ -252,3 +280,4 @@ echo "== 4. Bissecao do schema — qual construcao o Gemini recusa"
 while IFS=$'\t' read -r file label; do
   call "   $label" "$WORKING" "$DIR/$file.json"
 done < "$DIR/schema_labels.txt"
+fi
